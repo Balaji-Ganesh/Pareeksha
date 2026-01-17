@@ -1,47 +1,92 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 
+// Initialize Supabase client using env variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 function App() {
+  // ---------- CORE DATA STATE ----------
   const [exams, setExams] = useState([]);
+
+  // ---------- UI MODE STATE ----------
   const [showCreator, setShowCreator] = useState(false);
+  const [showExam, setShowExam] = useState(null);
+
+  // ---------- EXAM ATTEMPT STATE ----------
+  const [timeLeft, setTimeLeft] = useState(5400); // 90 minutes in seconds
+  const [answers, setAnswers] = useState({}); // user answers
+  const [results, setResults] = useState(null); // final result summary
+
+  // ---------- EXAM CREATION STATE ----------
   const [examName, setExamName] = useState("");
   const [examDate, setExamDate] = useState("");
   const [questions, setQuestions] = useState([]);
+
+  // Current question being designed
   const [currentQuestion, setCurrentQuestion] = useState({
     text: "",
     type: "MCQ",
     options: ["", "", "", ""],
     correct: [],
-    image: null,
   });
 
+  // Load exams from DB on first render
   useEffect(() => {
     fetchExams();
   }, []);
 
+  // ---------- TIMER LOGIC ----------
+  useEffect(() => {
+    // Only run timer when an exam is active
+    if (!showExam) return;
+
+    if (timeLeft > 0) {
+      const timer = setInterval(() => {
+        setTimeLeft((t) => t - 1);
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+
+    // Auto-submit when timer hits zero
+    if (timeLeft === 0) {
+      submitExam();
+    }
+  }, [showExam, timeLeft]);
+
+  // Fetch all exams from Supabase
   async function fetchExams() {
     const { data } = await supabase.from("exams").select("*").order("date");
+
     setExams(data || []);
   }
 
+  // Add the current question to exam being created
   function addQuestion() {
-    if (currentQuestion.text.trim()) {
-      setQuestions([...questions, { ...currentQuestion }]);
-      setCurrentQuestion({
-        text: "",
-        type: "MCQ",
-        options: ["", "", "", ""],
-        correct: [],
-      });
+    if (!currentQuestion.text.trim()) {
+      alert("Question text cannot be empty");
+      return;
     }
+
+    setQuestions([...questions, { ...currentQuestion }]);
+
+    // Reset question input fields
+    setCurrentQuestion({
+      text: "",
+      type: "MCQ",
+      options: ["", "", "", ""],
+      correct: [],
+    });
   }
 
+  // Save newly created exam to database
   async function saveExam() {
-    if (questions.length === 0) return alert("Add at least 1 question!");
+    if (questions.length === 0) {
+      alert("Add at least one question!");
+      return;
+    }
 
     const newExam = {
       name: examName || `Mock ${exams.length + 1}`,
@@ -51,280 +96,417 @@ function App() {
     };
 
     const { error } = await supabase.from("exams").insert([newExam]);
-    if (!error) {
-      alert("✅ Exam saved successfully!");
-      fetchExams();
-      setShowCreator(false);
-      setExamName("");
-      setQuestions([]);
-    } else {
+
+    if (error) {
       alert("Error: " + error.message);
+      return;
     }
+
+    alert("Exam saved successfully!");
+
+    await fetchExams();
+
+    // Reset creator UI
+    setShowCreator(false);
+    setExamName("");
+    setQuestions([]);
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent mb-4">
-            🚀 GATE-Duel
-          </h1>
-          <p className="text-xl text-slate-300">
-            Peer-to-peer GATE CS CBT platform
-          </p>
-        </div>
+  // ---------- EXAM ATTEMPT FUNCTIONS ----------
 
-        {/* Main Content */}
-        {!showCreator ? (
-          <div>
-            {/* Create Button */}
-            <div className="flex justify-center mb-12">
-              <button
-                onClick={() => setShowCreator(true)}
-                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-12 py-4 rounded-2xl font-bold text-xl shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:-translate-y-1"
-              >
-                + Create New Exam
+  // Start attempting a particular exam
+  function startExam(exam) {
+    setShowExam(exam);
+    setTimeLeft(5400);
+    setAnswers({});
+    setResults(null);
+  }
+
+  // Core evaluation logic
+  function evaluateExam() {
+    if (!showExam) return null;
+
+    let attempted = 0;
+    let correct = 0;
+    const total = showExam.questions.length;
+
+    showExam.questions.forEach((q, index) => {
+      const userAnswer = answers[index] || [];
+
+      if (userAnswer.length > 0) {
+        attempted++;
+      }
+
+      let isCorrect = false;
+
+      // NAT questions: direct value match
+      if (q.type === "NAT") {
+        isCorrect = userAnswer[0] === q.correct[0];
+      } else {
+        // MCQ/MSQ: compare sorted arrays
+        isCorrect =
+          JSON.stringify([...userAnswer].sort()) ===
+          JSON.stringify([...q.correct].sort());
+      }
+
+      if (isCorrect) correct++;
+    });
+
+    return {
+      attempted,
+      correct,
+      incorrect: attempted - correct,
+      unattempted: total - attempted,
+      total,
+      percentage: Math.round((correct / total) * 100),
+    };
+  }
+
+  // Submit current exam and calculate results
+  async function submitExam() {
+    if (!showExam) return;
+
+    const resultData = evaluateExam();
+    setResults(resultData);
+
+    // Store result back in database
+    await supabase
+      .from("exams")
+      .update({ score: resultData })
+      .eq("id", showExam.id);
+
+    await fetchExams();
+    setShowExam(null);
+  }
+
+  // Convert seconds to MM:SS format
+  function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+
+    return `${mins.toString().padStart(2, "0")}:${secs
+      .toString()
+      .padStart(2, "0")}`;
+  }
+
+  // ---------- EXAM ATTEMPT UI ----------
+  if (showExam) {
+    return (
+      <div className="container">
+        <h2>{showExam.name}</h2>
+        <h3>Time Left: {formatTime(timeLeft)}</h3>
+
+        {showExam.questions.map((question, qIndex) => (
+          <div key={qIndex} className="card">
+            <div>
+              <b>Q{qIndex + 1}:</b> {question.text}
+            </div>
+
+            {/* Render MCQ/MSQ Options Only */}
+            {question.type !== "NAT" &&
+              question.options.map((option, optIndex) => (
+                <div key={optIndex}>
+                  <label>
+                    <input
+                      type={question.type === "MSQ" ? "checkbox" : "radio"}
+                      name={`q${qIndex}`}
+                      checked={answers[qIndex]?.includes(optIndex) || false}
+                      onChange={(e) => {
+                        const newAnswers = { ...answers };
+
+                        if (!newAnswers[qIndex]) {
+                          newAnswers[qIndex] = [];
+                        }
+
+                        if (question.type === "MCQ") {
+                          newAnswers[qIndex] = e.target.checked
+                            ? [optIndex]
+                            : [];
+                        } else {
+                          if (e.target.checked) {
+                            newAnswers[qIndex].push(optIndex);
+                          } else {
+                            newAnswers[qIndex] = newAnswers[qIndex].filter(
+                              (i) => i !== optIndex,
+                            );
+                          }
+                        }
+
+                        setAnswers(newAnswers);
+                      }}
+                    />
+                    {String.fromCharCode(65 + optIndex)}: {option}
+                  </label>
+                </div>
+              ))}
+
+            {/* Render Numeric Input for NAT */}
+            {question.type === "NAT" && (
+              <div style={{ marginTop: "10px" }}>
+                <input
+                  type="number"
+                  placeholder="Enter numerical answer"
+                  value={answers[qIndex]?.[0] || ""}
+                  onChange={(e) => {
+                    setAnswers({
+                      ...answers,
+                      [qIndex]: [Number(e.target.value)],
+                    });
+                  }}
+                  style={{
+                    padding: "8px",
+                    width: "200px",
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        ))}
+
+        <button className="btn btn-green" onClick={submitExam}>
+          Submit Exam
+        </button>
+
+        <button
+          className="btn"
+          onClick={() => setShowExam(null)}
+          style={{ marginLeft: "10px" }}
+        >
+          Exit Exam
+        </button>
+      </div>
+    );
+  }
+
+  // ---------- RESULT SCREEN ----------
+  if (results) {
+    return (
+      <div className="container">
+        <h2>Exam Result</h2>
+
+        <p>Score: {results.percentage}%</p>
+        <p>Correct: {results.correct}</p>
+        <p>Incorrect: {results.incorrect}</p>
+        <p>Attempted: {results.attempted}</p>
+        <p>Unattempted: {results.unattempted}</p>
+
+        <button
+          className="btn"
+          onClick={() => {
+            setResults(null);
+            fetchExams();
+          }}
+        >
+          Back to Dashboard
+        </button>
+      </div>
+    );
+  }
+
+  // ---------- DASHBOARD + EXAM CREATOR UI ----------
+  return (
+    <div className="container">
+      <h1>GATE-Duel Dashboard</h1>
+
+      {!showCreator && (
+        <>
+          <button
+            className="btn btn-green"
+            onClick={() => setShowCreator(true)}
+          >
+            + Create New Exam
+          </button>
+
+          {exams.map((exam) => (
+            <div key={exam.id} className="card">
+              <h3>{exam.name}</h3>
+
+              <p>Date: {new Date(exam.date).toLocaleDateString()}</p>
+
+              <button className="btn" onClick={() => startExam(exam)}>
+                Attempt Exam ({exam.questions.length} Qs)
               </button>
             </div>
+          ))}
+        </>
+      )}
 
-            {/* Exams Dashboard */}
-            <div className="grid gap-6">
-              {exams.length === 0 ? (
-                <div className="text-center py-20">
-                  <p className="text-2xl text-slate-400 mb-4">No exams yet</p>
-                  <p className="text-slate-500">
-                    Create your first mock exam above!
-                  </p>
-                </div>
-              ) : (
-                exams.map((exam) => (
-                  <div key={exam.id} className="group">
-                    <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-3xl p-8 hover:bg-white/20 hover:border-white/30 transition-all duration-300 hover:scale-[1.02] shadow-2xl hover:shadow-3xl">
-                      <div className="flex justify-between items-start mb-6">
-                        <div>
-                          <h2 className="text-3xl font-bold text-white mb-2 group-hover:text-blue-300 transition-colors">
-                            {exam.name}
-                          </h2>
-                          <p className="text-slate-300 text-lg">
-                            By{" "}
-                            <span className="font-semibold text-blue-300">
-                              {exam.creator}
-                            </span>{" "}
-                            •{new Date(exam.date).toLocaleDateString("en-IN")}
-                          </p>
-                        </div>
-                        <span
-                          className={`px-4 py-2 rounded-full text-sm font-bold ${
-                            new Date(exam.date) > new Date()
-                              ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                              : "bg-green-500/20 text-green-300 border border-green-500/30"
-                          }`}
-                        >
-                          {new Date(exam.date) > new Date()
-                            ? "Upcoming"
-                            : "Ready"}
-                        </span>
-                      </div>
-                      <div className="flex gap-4">
-                        <button className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 px-8 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300">
-                          Attempt Exam ({exam.questions.length} Qs)
-                        </button>
-                        <button className="px-8 py-4 border-2 border-slate-400/50 text-slate-300 hover:bg-slate-700/50 rounded-2xl font-semibold transition-all duration-300">
-                          Details
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        ) : (
-          /* Exam Creator */
-          <div className="max-w-3xl mx-auto">
-            <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-3xl p-8">
-              <div className="flex justify-between items-center mb-8">
-                <h2 className="text-4xl font-bold bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">
-                  Create New Exam
-                </h2>
-                <button
-                  onClick={() => setShowCreator(false)}
-                  className="text-3xl hover:text-white transition-colors"
-                >
-                  ✕
-                </button>
-              </div>
+      {showCreator && (
+        <div className="card">
+          <h2>Create Exam</h2>
 
-              {/* Exam Details */}
-              <div className="space-y-6 mb-8">
+          {/* Exam basic details */}
+          <input
+            type="text"
+            placeholder="Exam Name"
+            value={examName}
+            onChange={(e) => setExamName(e.target.value)}
+            style={{ width: "100%", padding: "8px", marginBottom: "10px" }}
+          />
+
+          <input
+            type="date"
+            value={examDate}
+            onChange={(e) => setExamDate(e.target.value)}
+            style={{ width: "100%", padding: "8px", marginBottom: "10px" }}
+          />
+
+          <hr style={{ margin: "10px 0" }} />
+
+          {/* Question Designer */}
+          <h3>Add Question</h3>
+
+          <textarea
+            placeholder="Enter question text"
+            value={currentQuestion.text}
+            onChange={(e) =>
+              setCurrentQuestion({
+                ...currentQuestion,
+                text: e.target.value,
+              })
+            }
+            style={{
+              width: "100%",
+              height: "100px",
+              padding: "8px",
+              marginBottom: "10px",
+            }}
+          />
+
+          {/* Question Type */}
+          <select
+            value={currentQuestion.type}
+            onChange={(e) =>
+              setCurrentQuestion({
+                ...currentQuestion,
+                type: e.target.value,
+              })
+            }
+            style={{ width: "100%", padding: "8px", marginBottom: "10px" }}
+          >
+            <option value="MCQ">MCQ</option>
+            <option value="MSQ">MSQ</option>
+            <option value="NAT">NAT</option>
+          </select>
+
+          {/* Options (Only for MCQ/MSQ) */}
+          {currentQuestion.type !== "NAT" && (
+            <div style={{ marginBottom: "10px" }}>
+              {currentQuestion.options.map((opt, index) => (
                 <input
+                  key={index}
                   type="text"
-                  placeholder="Exam Name (e.g., Algorithms Mock 1)"
-                  value={examName}
-                  onChange={(e) => setExamName(e.target.value)}
-                  className="w-full p-5 bg-white/20 border border-white/30 rounded-2xl text-xl placeholder-slate-300 focus:outline-none focus:ring-4 focus:ring-blue-500/30 backdrop-blur-lg"
-                />
+                  placeholder={`Option ${index + 1}`}
+                  value={opt}
+                  onChange={(e) => {
+                    const newOpts = [...currentQuestion.options];
+                    newOpts[index] = e.target.value;
 
-                <input
-                  type="date"
-                  value={examDate}
-                  onChange={(e) => setExamDate(e.target.value)}
-                  className="w-full p-5 bg-white/20 border border-white/30 rounded-2xl text-lg placeholder-slate-300 focus:outline-none focus:ring-4 focus:ring-blue-500/30 backdrop-blur-lg"
-                />
-              </div>
-
-              {/* Question Editor */}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 mb-6 backdrop-blur-lg">
-                <h3 className="text-2xl font-bold text-white mb-6">
-                  Question {questions.length + 1}
-                </h3>
-
-                <textarea
-                  placeholder="Enter question here&#10;Supports markdown and code blocks (```cpp ... ```)"
-                  value={currentQuestion.text}
-                  onChange={(e) =>
                     setCurrentQuestion({
                       ...currentQuestion,
-                      text: e.target.value,
-                    })
-                  }
-                  className="w-full p-5 bg-white/10 border border-white/20 rounded-xl h-32 mb-6 resize-vertical text-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/50 backdrop-blur-lg"
+                      options: newOpts,
+                    });
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "8px",
+                    marginBottom: "5px",
+                  }}
                 />
+              ))}
+            </div>
+          )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <select
-                    value={currentQuestion.type}
-                    onChange={(e) =>
-                      setCurrentQuestion({
-                        ...currentQuestion,
-                        type: e.target.value,
-                      })
-                    }
-                    className="p-4 bg-white/10 border border-white/20 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-400/50 backdrop-blur-lg"
-                  >
-                    <option>MCQ</option>
-                    <option>MSQ</option>
-                    <option>NAT</option>
-                  </select>
+          {/* Correct Answer Selection */}
+          {currentQuestion.type !== "NAT" && (
+            <div style={{ marginBottom: "10px" }}>
+              <b>Select Correct Answer:</b>
 
-                  <div className="flex items-center space-x-3">
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        className="w-5 h-5 text-blue-600"
-                      />
-                      <span className="text-lg text-slate-300">
-                        Image upload
-                      </span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Options */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  {currentQuestion.options.map((opt, i) => (
-                    <input
-                      key={i}
-                      placeholder={`Option ${String.fromCharCode(65 + i)}`}
-                      value={opt}
-                      onChange={(e) => {
-                        const newOpts = [...currentQuestion.options];
-                        newOpts[i] = e.target.value;
+              {currentQuestion.options.map((_, index) => (
+                <label key={index} style={{ marginLeft: "10px" }}>
+                  <input
+                    type={currentQuestion.type === "MSQ" ? "checkbox" : "radio"}
+                    name="correct"
+                    checked={currentQuestion.correct.includes(index)}
+                    onChange={() => {
+                      if (currentQuestion.type === "MCQ") {
                         setCurrentQuestion({
                           ...currentQuestion,
-                          options: newOpts,
+                          correct: [index],
                         });
-                      }}
-                      className="p-4 bg-white/10 border border-white/20 rounded-xl placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/50 backdrop-blur-lg"
-                    />
-                  ))}
-                </div>
+                      } else {
+                        let newCorrect = [...currentQuestion.correct];
 
-                {/* Correct Answer Selector */}
-                <div className="mb-8 p-4 bg-white/5 rounded-xl border border-white/10">
-                  <h4 className="text-xl font-semibold text-white mb-4">
-                    Correct Answer(s):
-                  </h4>
-                  <div className="flex flex-wrap gap-4">
-                    {currentQuestion.options.map((opt, i) => (
-                      <label
-                        key={i}
-                        className="flex items-center gap-3 p-3 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-all"
-                      >
-                        <input
-                          type={
-                            currentQuestion.type === "MSQ"
-                              ? "checkbox"
-                              : "radio"
-                          }
-                          name="correct"
-                          checked={currentQuestion.correct.includes(i)}
-                          onChange={(e) => {
-                            let newCorrect = [...currentQuestion.correct];
-                            if (currentQuestion.type === "MCQ")
-                              newCorrect = [i];
-                            else if (e.target.checked) newCorrect.push(i);
-                            else
-                              newCorrect = newCorrect.filter(
-                                (idx) => idx !== i,
-                              );
-                            setCurrentQuestion({
-                              ...currentQuestion,
-                              correct: newCorrect,
-                            });
-                          }}
-                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
-                        />
-                        <span className="text-lg font-medium text-slate-200">
-                          {String.fromCharCode(65 + i)}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                        if (newCorrect.includes(index)) {
+                          newCorrect = newCorrect.filter((i) => i !== index);
+                        } else {
+                          newCorrect.push(index);
+                        }
 
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <button
-                    onClick={addQuestion}
-                    disabled={!currentQuestion.text.trim()}
-                    className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white py-4 px-8 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    + Add Question
-                  </button>
-                  <button
-                    onClick={saveExam}
-                    disabled={questions.length === 0}
-                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 px-8 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    💾 Save Exam ({questions.length} Qs)
-                  </button>
-                </div>
-              </div>
-
-              {/* Questions Preview */}
-              {questions.length > 0 && (
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-lg">
-                  <h4 className="text-2xl font-bold text-white mb-4">
-                    Preview ({questions.length} questions)
-                  </h4>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {questions.map((q, i) => (
-                      <div
-                        key={i}
-                        className="p-3 bg-white/5 rounded-xl text-slate-300 text-sm"
-                      >
-                        Q{i + 1}: {q.text.slice(0, 60)}...
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                        setCurrentQuestion({
+                          ...currentQuestion,
+                          correct: newCorrect,
+                        });
+                      }
+                    }}
+                  />
+                  {String.fromCharCode(65 + index)}
+                </label>
+              ))}
             </div>
-          </div>
-        )}
-      </div>
+          )}
+
+          {/* For NAT type: correct numeric answer */}
+          {currentQuestion.type === "NAT" && (
+            <div style={{ marginBottom: "10px" }}>
+              <input
+                type="number"
+                placeholder="Correct numeric answer"
+                onChange={(e) =>
+                  setCurrentQuestion({
+                    ...currentQuestion,
+                    correct: [Number(e.target.value)],
+                  })
+                }
+                style={{ padding: "8px", width: "100%" }}
+              />
+            </div>
+          )}
+
+          <button className="btn btn-green" onClick={addQuestion}>
+            Add Question
+          </button>
+
+          <button
+            className="btn"
+            style={{ marginLeft: "10px" }}
+            onClick={saveExam}
+          >
+            Save Exam
+          </button>
+
+          <button
+            className="btn"
+            style={{ marginLeft: "10px" }}
+            onClick={() => setShowCreator(false)}
+          >
+            Cancel
+          </button>
+
+          {/* Preview of questions added so far */}
+          {questions.length > 0 && (
+            <div style={{ marginTop: "20px" }}>
+              <h3>Questions Added: {questions.length}</h3>
+
+              {questions.map((q, i) => (
+                <div key={i} style={{ marginTop: "5px" }}>
+                  Q{i + 1}: {q.text.substring(0, 50)}...
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
