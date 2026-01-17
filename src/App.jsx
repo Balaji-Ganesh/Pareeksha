@@ -193,9 +193,13 @@ function App() {
   if (showExam) {
     return (
       <div className="container">
-        <h2>{showExam.name}</h2>
-        <h3>Time Left: {formatTime(timeLeft)}</h3>
-
+        <div
+          className="card"
+          style={{ display: "flex", justifyContent: "space-between" }}
+        >
+          <h2>{showExam.name}</h2>
+          <h2 style={{ color: "#f87171" }}>⏱ {formatTime(timeLeft)}</h2>
+        </div>
         {showExam.questions.map((question, qIndex) => (
           <div key={qIndex} className="card">
             <div>
@@ -205,7 +209,7 @@ function App() {
             {/* Render MCQ/MSQ Options Only */}
             {question.type !== "NAT" &&
               question.options.map((option, optIndex) => (
-                <div key={optIndex}>
+                <div key={optIndex} className="option-row">
                   <label>
                     <input
                       type={question.type === "MSQ" ? "checkbox" : "radio"}
@@ -282,7 +286,7 @@ function App() {
   if (results) {
     return (
       <div className="container">
-        <h2>Exam Result</h2>
+        <h2 style={{ textAlign: "center" }}>📊 Exam Summary</h2>
 
         <p>Score: {results.percentage}%</p>
         <p>Correct: {results.correct}</p>
@@ -306,7 +310,9 @@ function App() {
   // ---------- DASHBOARD + EXAM CREATOR UI ----------
   return (
     <div className="container">
-      <h1>GATE-Duel Dashboard</h1>
+      <h1 style={{ textAlign: "center", marginBottom: "20px" }}>
+        🎯 GATE-Duel Dashboard
+      </h1>
 
       {!showCreator && (
         <>
@@ -321,7 +327,15 @@ function App() {
             <div key={exam.id} className="card">
               <h3>{exam.name}</h3>
 
-              <p>Date: {new Date(exam.date).toLocaleDateString()}</p>
+              <p style={{ fontSize: "14px", opacity: 0.8 }}>
+                📅 {new Date(exam.date).toLocaleDateString()}
+              </p>
+
+              {exam.score && (
+                <p style={{ fontSize: "14px", marginTop: "6px" }}>
+                  🏆 Last Score: {exam.score.percentage}%
+                </p>
+              )}
 
               <button className="btn" onClick={() => startExam(exam)}>
                 Attempt Exam ({exam.questions.length} Qs)
