@@ -15,7 +15,7 @@ function App() {
   const [showExam, setShowExam] = useState(null);
 
   // ---------- EXAM ATTEMPT STATE ----------
-  const [timeLeft, setTimeLeft] = useState(5400); // 90 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(0); // [Default] 90 minutes in seconds
   const [answers, setAnswers] = useState({}); // user answers
   const [results, setResults] = useState(null); // final result summary
 
@@ -23,6 +23,7 @@ function App() {
   const [examName, setExamName] = useState("");
   const [examDate, setExamDate] = useState("");
   const [questions, setQuestions] = useState([]);
+  const [examDuration, setExamDuration] = useState(90); // Default 90 minutes
 
   // ---------- EXAM EDITING STATE ----------
   const [editExam, setEditExam] = useState(null);
@@ -105,10 +106,10 @@ function App() {
     const examData = {
       name: examName || `Mock ${exams.length + 1}`,
       date: examDate,
+      duration: examDuration,
       creator: "Person A",
       questions,
     };
-
     let error;
 
     if (editExam) {
@@ -137,6 +138,7 @@ function App() {
 
     // Reset all states
     setShowCreator(false);
+    setExamDuration(90);
     setEditExam(null);
     setExamName("");
     setQuestions([]);
@@ -147,7 +149,7 @@ function App() {
   // Editing functionality of created exam.
   function openEditExam(exam) {
     setEditExam(exam);
-
+    setExamDuration(exam.duration || 90); // with default of 90
     setExamName(exam.name);
     setExamDate(exam.date.split("T")[0]);
     setQuestions([...exam.questions]);
@@ -169,7 +171,10 @@ function App() {
   // Start attempting a particular exam
   function startExam(exam) {
     setShowExam(exam);
-    setTimeLeft(5400);
+
+    const minutes = exam.duration || 90;
+    setTimeLeft(minutes * 60);
+
     setAnswers({});
     setResults(null);
   }
@@ -382,6 +387,9 @@ function App() {
               <p style={{ fontSize: "14px", opacity: 0.8 }}>
                 📅 {new Date(exam.date).toLocaleDateString()}
               </p>
+              <p style={{ fontSize: "14px", opacity: 0.8 }}>
+                ⏱ Duration: {exam.duration || 90} minutes
+              </p>
 
               {exam.score && (
                 <p style={{ fontSize: "14px", marginTop: "6px" }}>
@@ -425,6 +433,17 @@ function App() {
             value={examDate}
             onChange={(e) => setExamDate(e.target.value)}
             style={{ width: "100%", padding: "8px", marginBottom: "10px" }}
+          />
+          <input
+            type="number"
+            placeholder="Duration in minutes"
+            value={examDuration}
+            onChange={(e) => setExamDuration(Number(e.target.value))}
+            style={{
+              width: "100%",
+              padding: "8px",
+              marginBottom: "10px",
+            }}
           />
 
           <hr style={{ margin: "10px 0" }} />
