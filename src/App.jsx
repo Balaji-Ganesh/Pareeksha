@@ -24,6 +24,9 @@ function App() {
   const [examDate, setExamDate] = useState("");
   const [questions, setQuestions] = useState([]);
 
+  // ---------- EXAM EDITING STATE ----------
+  const [editExam, setEditExam] = useState(null);
+
   // Current question being designed
   const [currentQuestion, setCurrentQuestion] = useState({
     text: "",
@@ -88,28 +91,65 @@ function App() {
       return;
     }
 
-    const newExam = {
+    const examData = {
       name: examName || `Mock ${exams.length + 1}`,
-      date: new Date(examDate || Date.now() + 14 * 24 * 60 * 60 * 1000),
+      date: examDate,
       creator: "Person A",
       questions,
     };
 
-    const { error } = await supabase.from("exams").insert([newExam]);
+    let error;
+
+    if (editExam) {
+      // UPDATE existing exam
+      const res = await supabase
+        .from("exams")
+        .update(examData)
+        .eq("id", editExam.id);
+
+      error = res.error;
+    } else {
+      // CREATE new exam
+      const res = await supabase.from("exams").insert([examData]);
+
+      error = res.error;
+    }
 
     if (error) {
       alert("Error: " + error.message);
       return;
     }
 
-    alert("Exam saved successfully!");
+    alert(editExam ? "Exam updated!" : "Exam saved!");
 
     await fetchExams();
 
-    // Reset creator UI
+    // Reset all states
     setShowCreator(false);
+    setEditExam(null);
     setExamName("");
     setQuestions([]);
+  }
+
+  // ---------- CREATED EXAM ATTEMPT FUNCTIONS ----------
+  // Editing functionality of created exam.
+  function openEditExam(exam) {
+    setEditExam(exam);
+
+    setExamName(exam.name);
+    setExamDate(exam.date.split("T")[0]);
+    setQuestions([...exam.questions]);
+    setShowCreator(true);
+  }
+
+  // Deleting of created exam
+  async function deleteExam(id) {
+    if (!window.confirm("Are you sure you want to delete this exam?")) return;
+
+    await supabase.from("exams").delete().eq("id", id);
+
+    alert("Exam deleted successfully!");
+    fetchExams();
   }
 
   // ---------- EXAM ATTEMPT FUNCTIONS ----------
@@ -337,9 +377,19 @@ function App() {
                 </p>
               )}
 
-              <button className="btn" onClick={() => startExam(exam)}>
-                Attempt Exam ({exam.questions.length} Qs)
-              </button>
+              <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
+                <button className="btn" onClick={() => startExam(exam)}>
+                  Attempt Exam
+                </button>
+
+                <button className="btn" onClick={() => openEditExam(exam)}>
+                  Edit
+                </button>
+
+                <button className="btn" onClick={() => deleteExam(exam.id)}>
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </>
@@ -513,8 +563,29 @@ function App() {
               <h3>Questions Added: {questions.length}</h3>
 
               {questions.map((q, i) => (
-                <div key={i} style={{ marginTop: "5px" }}>
-                  Q{i + 1}: {q.text.substring(0, 50)}...
+                <div
+                  key={i}
+                  style={{
+                    marginTop: "5px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span>
+                    Q{i + 1}: {q.text.substring(0, 50)}...
+                  </span>
+
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      const updated = questions.filter(
+                        (_, index) => index !== i,
+                      );
+                      setQuestions(updated);
+                    }}
+                  >
+                    Delete
+                  </button>
                 </div>
               ))}
             </div>
