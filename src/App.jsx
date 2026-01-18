@@ -26,6 +26,7 @@ function App() {
 
   // ---------- EXAM EDITING STATE ----------
   const [editExam, setEditExam] = useState(null);
+  const [editingIndex, setEditingIndex] = useState(null);
 
   // Current question being designed
   const [currentQuestion, setCurrentQuestion] = useState({
@@ -73,9 +74,19 @@ function App() {
       return;
     }
 
-    setQuestions([...questions, { ...currentQuestion }]);
+    if (editingIndex !== null) {
+      // UPDATE existing question
+      const updated = [...questions];
+      updated[editingIndex] = { ...currentQuestion };
+      setQuestions(updated);
 
-    // Reset question input fields
+      setEditingIndex(null);
+    } else {
+      // ADD new question
+      setQuestions([...questions, { ...currentQuestion }]);
+    }
+
+    // Reset editor
     setCurrentQuestion({
       text: "",
       type: "MCQ",
@@ -129,6 +140,7 @@ function App() {
     setEditExam(null);
     setExamName("");
     setQuestions([]);
+    setEditingIndex(null);
   }
 
   // ---------- CREATED EXAM ATTEMPT FUNCTIONS ----------
@@ -538,7 +550,7 @@ function App() {
           )}
 
           <button className="btn btn-green" onClick={addQuestion}>
-            Add Question
+            {editingIndex !== null ? "Update Question" : "Add Question"}
           </button>
 
           <button
@@ -569,23 +581,48 @@ function App() {
                     marginTop: "5px",
                     display: "flex",
                     justifyContent: "space-between",
+                    alignItems: "center",
                   }}
                 >
                   <span>
                     Q{i + 1}: {q.text.substring(0, 50)}...
                   </span>
 
-                  <button
-                    className="btn"
-                    onClick={() => {
-                      const updated = questions.filter(
-                        (_, index) => index !== i,
-                      );
-                      setQuestions(updated);
-                    }}
-                  >
-                    Delete
-                  </button>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button
+                      className="btn"
+                      onClick={() => {
+                        // Load selected question into editor
+                        setCurrentQuestion({ ...q });
+                        setEditingIndex(i);
+                      }}
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      className="btn"
+                      onClick={() => {
+                        const updated = questions.filter(
+                          (_, index) => index !== i,
+                        );
+                        setQuestions(updated);
+
+                        // Reset editor if deleting the one being edited
+                        if (editingIndex === i) {
+                          setCurrentQuestion({
+                            text: "",
+                            type: "MCQ",
+                            options: ["", "", "", ""],
+                            correct: [],
+                          });
+                          setEditingIndex(null);
+                        }
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
