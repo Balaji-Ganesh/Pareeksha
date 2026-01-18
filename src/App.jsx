@@ -18,6 +18,7 @@ function App() {
   const [timeLeft, setTimeLeft] = useState(0); // [Default] 90 minutes in seconds
   const [answers, setAnswers] = useState({}); // user answers
   const [results, setResults] = useState(null); // final result summary
+  const [reviewExam, setReviewExam] = useState(null);
 
   // ---------- EXAM CREATION STATE ----------
   const [examName, setExamName] = useState("");
@@ -224,15 +225,20 @@ function App() {
     if (!showExam) return;
 
     const resultData = evaluateExam();
+
+    // Store exam separately for review
+    setReviewExam(showExam);
+
     setResults(resultData);
 
-    // Store result back in database
     await supabase
       .from("exams")
       .update({ score: resultData })
       .eq("id", showExam.id);
 
     await fetchExams();
+
+    // Clear attempt mode but keep reviewExam intact
     setShowExam(null);
   }
 
@@ -343,18 +349,92 @@ function App() {
   if (results) {
     return (
       <div className="container">
-        <h2 style={{ textAlign: "center" }}>📊 Exam Summary</h2>
+        <h2 style={{ textAlign: "center" }}>📊 Exam Analysis</h2>
 
-        <p>Score: {results.percentage}%</p>
-        <p>Correct: {results.correct}</p>
-        <p>Incorrect: {results.incorrect}</p>
-        <p>Attempted: {results.attempted}</p>
-        <p>Unattempted: {results.unattempted}</p>
+        {/* Summary Card */}
+        <div className="card">
+          <h3>Score: {results.percentage}%</h3>
+
+          <p>🟢 Attempted: {results.attempted}</p>
+          <p>✅ Correct: {results.correct}</p>
+          <p>❌ Incorrect: {results.incorrect}</p>
+          <p>⚪ Not Attempted: {results.unattempted}</p>
+
+          <p>Total Questions: {results.total}</p>
+        </div>
+
+        {/* Detailed Question Review */}
+        <h3>Question Review</h3>
+
+        {reviewExam?.questions.map((q, index) => {
+          const userAnswer = answers[index] || [];
+          const correctAnswer = q.correct || [];
+
+          let status = "unattempted";
+          let isCorrect = false;
+
+          if (userAnswer.length > 0) {
+            status = "attempted";
+
+            if (q.type === "NAT") {
+              isCorrect = userAnswer[0] === correctAnswer[0];
+            } else {
+              isCorrect =
+                JSON.stringify([...userAnswer].sort()) ===
+                JSON.stringify([...correctAnswer].sort());
+            }
+
+            if (isCorrect) status = "correct";
+            else status = "incorrect";
+          }
+
+          return (
+            <div key={index} className="card">
+              <div>
+                <b>Q{index + 1}:</b> {q.text}
+              </div>
+
+              {q.type !== "NAT" &&
+                q.options.map((opt, i) => {
+                  const isUser = userAnswer.includes(i);
+                  const isRight = correctAnswer.includes(i);
+
+                  let style = {};
+
+                  if (isRight) {
+                    style = { color: "#4ade80", fontWeight: "bold" };
+                  } else if (isUser && !isRight) {
+                    style = { color: "#f87171", fontWeight: "bold" };
+                  }
+
+                  return (
+                    <div key={i} style={style}>
+                      {String.fromCharCode(65 + i)}: {opt}
+                    </div>
+                  );
+                })}
+
+              {q.type === "NAT" && (
+                <div>
+                  <p>Your Answer: {userAnswer[0] ?? "Not Attempted"}</p>
+                  <p>Correct Answer: {correctAnswer[0]}</p>
+                </div>
+              )}
+
+              <div style={{ marginTop: "10px" }}>
+                Status: {status === "correct" && "✅ Correct"}
+                {status === "incorrect" && "❌ Incorrect"}
+                {status === "unattempted" && "⚪ Unattempted"}
+              </div>
+            </div>
+          );
+        })}
 
         <button
           className="btn"
           onClick={() => {
             setResults(null);
+            setReviewExam(null);
             fetchExams();
           }}
         >
