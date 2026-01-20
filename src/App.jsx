@@ -107,28 +107,36 @@ function App() {
           code({ inline, className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || "");
 
-            return !inline ? (
-              <div style={{ textAlign: "left" }}>
-                <SyntaxHighlighter
-                  style={dracula}
-                  language={match ? match[1] : "text"}
-                  PreTag="div"
-                  customStyle={{
-                    textAlign: "left",
-                    background: "#0f172a",
-                    borderRadius: "10px",
-                  }}
-                  {...props}
-                >
-                  {String(children).replace(/\n$/, "")}
-                </SyntaxHighlighter>
-              </div>
-            ) : (
+            // If language is specified -> treat as block code
+            if (match) {
+              return (
+                <div style={{ textAlign: "left" }}>
+                  <SyntaxHighlighter
+                    style={dracula}
+                    language={match[1]}
+                    PreTag="div"
+                    customStyle={{
+                      textAlign: "left",
+                      background: "#0f172a",
+                      borderRadius: "10px",
+                    }}
+                    {...props}
+                  >
+                    {String(children).replace(/\n$/, "")}
+                  </SyntaxHighlighter>
+                </div>
+              );
+            }
+
+            // Otherwise ALWAYS treat as inline code
+            return (
               <code className="inline-code" {...props}>
                 {children}
               </code>
             );
           },
+
+          // Prevent paragraph tags from breaking inline layouts
           p({ children }) {
             return <span>{children}</span>;
           },
@@ -138,6 +146,7 @@ function App() {
       </ReactMarkdown>
     );
   }
+
 
   // Save newly created exam to database
   async function saveExam() {
