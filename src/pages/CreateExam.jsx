@@ -149,6 +149,44 @@ export default function CreateExam({ onBack }) {
           />
         ))}
 
+      {currentQuestion.type !== "NAT" && (
+        <div style={{ marginBottom: "10px" }}>
+          <b>Select Correct Answer:</b>
+
+          {currentQuestion.options.map((_, index) => (
+            <label key={index} style={{ marginLeft: "10px" }}>
+              <input
+                type={currentQuestion.type === "MSQ" ? "checkbox" : "radio"}
+                name="correct"
+                checked={currentQuestion.correct.includes(index)}
+                onChange={() => {
+                  if (currentQuestion.type === "MCQ") {
+                    setCurrentQuestion({
+                      ...currentQuestion,
+                      correct: [index],
+                    });
+                  } else {
+                    let newCorrect = [...currentQuestion.correct];
+
+                    if (newCorrect.includes(index)) {
+                      newCorrect = newCorrect.filter((i) => i !== index);
+                    } else {
+                      newCorrect.push(index);
+                    }
+
+                    setCurrentQuestion({
+                      ...currentQuestion,
+                      correct: newCorrect,
+                    });
+                  }
+                }}
+              />
+              {String.fromCharCode(65 + index)}
+            </label>
+          ))}
+        </div>
+      )}
+
       <button className="btn btn-green" onClick={addQuestion}>
         {editingIndex !== null ? "Update Question" : "Add Question"}
       </button>
