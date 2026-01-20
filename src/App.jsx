@@ -1,23 +1,32 @@
+import { useState } from "react";
 import Dashboard from "./pages/Dashboard";
+import CreateExam from "./pages/CreateExam";
 
 export default function App() {
+  const [mode, setMode] = useState("dashboard");
+  const [examToEdit, setExamToEdit] = useState(null);
+
   function handleCreate() {
-    alert("Create page will be connected next");
+    setExamToEdit(null);
+    setMode("create");
   }
 
   function handleEdit(exam) {
-    alert("Edit page will be connected next");
+    setExamToEdit(exam);
+    setMode("create");
   }
 
-  function handleAttempt(exam) {
-    alert("Attempt page will be connected next");
+  function handleAttempt() {
+    alert("Attempt page coming next");
   }
 
-  return (
+  return mode === "dashboard" ? (
     <Dashboard
       onCreate={handleCreate}
       onEdit={handleEdit}
       onAttempt={handleAttempt}
     />
+  ) : (
+    <CreateExam editExam={examToEdit} onBack={() => setMode("dashboard")} />
   );
 }
