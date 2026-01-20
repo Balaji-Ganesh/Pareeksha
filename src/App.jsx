@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
+import ReactMarkdown from "react-markdown";
 
 // Initialize Supabase client using env variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -266,7 +267,10 @@ function App() {
         {showExam.questions.map((question, qIndex) => (
           <div key={qIndex} className="card">
             <div>
-              <b>Q{qIndex + 1}:</b> {question.text}
+              <div>
+                <b>Q{qIndex + 1}:</b>
+                <ReactMarkdown>{question.text}</ReactMarkdown>
+              </div>
             </div>
 
             {/* Render MCQ/MSQ Options Only */}
@@ -294,7 +298,7 @@ function App() {
                             newAnswers[qIndex].push(optIndex);
                           } else {
                             newAnswers[qIndex] = newAnswers[qIndex].filter(
-                              (i) => i !== optIndex,
+                              (i) => i !== optIndex
                             );
                           }
                         }
@@ -302,7 +306,8 @@ function App() {
                         setAnswers(newAnswers);
                       }}
                     />
-                    {String.fromCharCode(65 + optIndex)}: {option}
+                    {String.fromCharCode(65 + optIndex)}:
+                    <ReactMarkdown>{option}</ReactMarkdown>
                   </label>
                 </div>
               ))}
@@ -391,7 +396,7 @@ function App() {
           return (
             <div key={index} className="card">
               <div>
-                <b>Q{index + 1}:</b> {q.text}
+                <b>Q{index + 1}:</b> <ReactMarkdown>{q.text}</ReactMarkdown>
               </div>
 
               {q.type !== "NAT" &&
@@ -703,7 +708,7 @@ function App() {
                       className="btn"
                       onClick={() => {
                         const updated = questions.filter(
-                          (_, index) => index !== i,
+                          (_, index) => index !== i
                         );
                         setQuestions(updated);
 
