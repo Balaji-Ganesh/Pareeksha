@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+
+// Import custom services..
 import { supabase } from "./services/supabaseClient";
-import ReactMarkdown from "react-markdown";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
+
+// Import custom components..
+import MarkdownRenderer from "./components/MarkdownRenderer";
 
 function App() {
   // ---------- CORE DATA STATE ----------
@@ -94,54 +96,6 @@ function App() {
       correct: [],
     });
   }
-
-  function MarkdownRenderer({ text }) {
-    return (
-      <ReactMarkdown
-        components={{
-          code({ inline, className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || "");
-
-            // If language is specified -> treat as block code
-            if (match) {
-              return (
-                <div style={{ textAlign: "left" }}>
-                  <SyntaxHighlighter
-                    style={dracula}
-                    language={match[1]}
-                    PreTag="div"
-                    customStyle={{
-                      textAlign: "left",
-                      background: "#0f172a",
-                      borderRadius: "10px",
-                    }}
-                    {...props}
-                  >
-                    {String(children).replace(/\n$/, "")}
-                  </SyntaxHighlighter>
-                </div>
-              );
-            }
-
-            // Otherwise ALWAYS treat as inline code
-            return (
-              <code className="inline-code" {...props}>
-                {children}
-              </code>
-            );
-          },
-
-          // Prevent paragraph tags from breaking inline layouts
-          p({ children }) {
-            return <span>{children}</span>;
-          },
-        }}
-      >
-        {text}
-      </ReactMarkdown>
-    );
-  }
-
 
   // Save newly created exam to database
   async function saveExam() {
