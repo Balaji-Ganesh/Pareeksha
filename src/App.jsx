@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import ReactMarkdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 // Initialize Supabase client using env variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -96,6 +98,45 @@ function App() {
       options: ["", "", "", ""],
       correct: [],
     });
+  }
+
+  function MarkdownRenderer({ text }) {
+    return (
+      <ReactMarkdown
+        components={{
+          code({ inline, className, children, ...props }) {
+            const match = /language-(\w+)/.exec(className || "");
+
+            return !inline ? (
+              <div style={{ textAlign: "left" }}>
+                <SyntaxHighlighter
+                  style={dracula}
+                  language={match ? match[1] : "text"}
+                  PreTag="div"
+                  customStyle={{
+                    textAlign: "left",
+                    background: "#0f172a",
+                    borderRadius: "10px",
+                  }}
+                  {...props}
+                >
+                  {String(children).replace(/\n$/, "")}
+                </SyntaxHighlighter>
+              </div>
+            ) : (
+              <code className="inline-code" {...props}>
+                {children}
+              </code>
+            );
+          },
+          p({ children }) {
+            return <span>{children}</span>;
+          },
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    );
   }
 
   // Save newly created exam to database
@@ -267,48 +308,49 @@ function App() {
         {showExam.questions.map((question, qIndex) => (
           <div key={qIndex} className="card">
             <div>
-              <div>
+              <div style={{ marginBottom: "10px" }}>
                 <b>Q{qIndex + 1}:</b>
-                <ReactMarkdown>{question.text}</ReactMarkdown>
+                <div style={{ marginTop: "6px" }}>
+                  <MarkdownRenderer text={question.text} />
+                </div>
               </div>
             </div>
 
             {/* Render MCQ/MSQ Options Only */}
             {question.type !== "NAT" &&
               question.options.map((option, optIndex) => (
-                <div key={optIndex} className="option-row">
-                  <label>
-                    <input
-                      type={question.type === "MSQ" ? "checkbox" : "radio"}
-                      name={`q${qIndex}`}
-                      checked={answers[qIndex]?.includes(optIndex) || false}
-                      onChange={(e) => {
-                        const newAnswers = { ...answers };
+                <div key={optIndex} className="option-container">
+                  <input
+                    type={question.type === "MSQ" ? "checkbox" : "radio"}
+                    name={`q${qIndex}`}
+                    checked={answers[qIndex]?.includes(optIndex) || false}
+                    onChange={(e) => {
+                      const newAnswers = { ...answers };
 
-                        if (!newAnswers[qIndex]) {
-                          newAnswers[qIndex] = [];
-                        }
+                      if (!newAnswers[qIndex]) {
+                        newAnswers[qIndex] = [];
+                      }
 
-                        if (question.type === "MCQ") {
-                          newAnswers[qIndex] = e.target.checked
-                            ? [optIndex]
-                            : [];
+                      if (question.type === "MCQ") {
+                        newAnswers[qIndex] = e.target.checked ? [optIndex] : [];
+                      } else {
+                        if (e.target.checked) {
+                          newAnswers[qIndex].push(optIndex);
                         } else {
-                          if (e.target.checked) {
-                            newAnswers[qIndex].push(optIndex);
-                          } else {
-                            newAnswers[qIndex] = newAnswers[qIndex].filter(
-                              (i) => i !== optIndex
-                            );
-                          }
+                          newAnswers[qIndex] = newAnswers[qIndex].filter(
+                            (i) => i !== optIndex
+                          );
                         }
+                      }
 
-                        setAnswers(newAnswers);
-                      }}
-                    />
-                    {String.fromCharCode(65 + optIndex)}:
-                    <ReactMarkdown>{option}</ReactMarkdown>
-                  </label>
+                      setAnswers(newAnswers);
+                    }}
+                  />
+
+                  <span className="option-text">
+                    <b>{String.fromCharCode(65 + optIndex)}.</b>{" "}
+                    <MarkdownRenderer text={option} />
+                  </span>
                 </div>
               ))}
 
@@ -395,8 +437,11 @@ function App() {
 
           return (
             <div key={index} className="card">
-              <div>
-                <b>Q{index + 1}:</b> <ReactMarkdown>{q.text}</ReactMarkdown>
+              <div style={{ marginBottom: "10px" }}>
+                <b>Q{index + 1}:</b>
+                <div style={{ marginTop: "6px" }}>
+                  <MarkdownRenderer text={q.text} />
+                </div>
               </div>
 
               {q.type !== "NAT" &&
@@ -413,8 +458,11 @@ function App() {
                   }
 
                   return (
-                    <div key={i} style={style}>
-                      {String.fromCharCode(65 + i)}: {opt}
+                    <div key={i} className="option-container" style={style}>
+                      <span>
+                        <b>{String.fromCharCode(65 + i)}.</b>{" "}
+                        <MarkdownRenderer text={opt} />
+                      </span>
                     </div>
                   );
                 })}

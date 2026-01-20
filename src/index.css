@@ -118,3 +118,34 @@ input[type="checkbox"] {
   gap: 8px;
   padding: 8px 6px;
 }
+
+/* Markdown option alignment fix */
+.option-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 6px;
+}
+
+/* Keep markdown inline inside options */
+.option-text {
+  display: inline-block;
+}
+
+/* Inline code styling */
+.inline-code {
+  background: #020617;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-family: monospace;
+}
+
+/* Prevent code blocks from centering */
+pre {
+  text-align: left !important;
+}
+
+/* Better spacing for markdown inside questions */
+.card div > span {
+  line-height: 1.5;
+}
