@@ -328,7 +328,7 @@ function App() {
             {/* Render MCQ/MSQ Options Only */}
             {question.type !== "NAT" &&
               question.options.map((option, optIndex) => (
-                <div key={optIndex} className="option-container">
+                <label key={optIndex} className="option-container">
                   <input
                     type={question.type === "MSQ" ? "checkbox" : "radio"}
                     name={`q${qIndex}`}
@@ -360,7 +360,7 @@ function App() {
                     <b>{String.fromCharCode(65 + optIndex)}.</b>{" "}
                     <MarkdownRenderer text={option} />
                   </span>
-                </div>
+                </label>
               ))}
 
             {/* Render Numeric Input for NAT */}
