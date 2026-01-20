@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import { supabase } from "../services/supabaseClient";
 import MarkdownRenderer from "../components/MarkdownRenderer";
 import Layout from "../components/Layout";
+import { useLocation } from "react-router-dom";
 
-export default function AttemptExam({ exam, onFinish }) {
+export default function AttemptExam({ onFinish }) {
+  const { state } = useLocation();
+  const exam = state;
   const [timeLeft, setTimeLeft] = useState((exam.duration || 90) * 60);
 
   const [answers, setAnswers] = useState({});

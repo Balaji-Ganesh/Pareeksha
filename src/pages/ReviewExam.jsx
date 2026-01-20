@@ -1,8 +1,12 @@
 import MarkdownRenderer from "../components/MarkdownRenderer";
 import ResultSummary from "../components/ResultSummary";
 import Layout from "../components/Layout";
+import { useLocation } from "react-router-dom";
 
-export default function ReviewExam({ exam, results, answers, onBack }) {
+export default function ReviewExam({ onBack }) {
+  const { state } = useLocation();
+
+  const { exam, results, answers } = state;
   return (
     <Layout title="📊 Exam Analysis">
       <ResultSummary results={results} />

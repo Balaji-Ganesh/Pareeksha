@@ -1,8 +1,12 @@
 import { useState } from "react";
 import { supabase } from "../services/supabaseClient";
 import Layout from "../components/Layout";
+import { useLocation } from "react-router-dom";
 
-export default function CreateExam({ onBack, editExam = null }) {
+export default function CreateExam({ onBack }) {
+  const { state } = useLocation();
+  const editExam = state || null;
+
   const [examName, setExamName] = useState(editExam?.name || "");
   const [examDate, setExamDate] = useState(editExam?.date?.split("T")[0] || "");
   const [examDuration, setExamDuration] = useState(editExam?.duration || 90);
