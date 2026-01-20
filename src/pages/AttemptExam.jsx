@@ -77,10 +77,21 @@ export default function AttemptExam({ onFinish }) {
         style={{
           display: "flex",
           justifyContent: "space-between",
+          alignItems: "center",
         }}
       >
-        <h3>Time Left</h3>
-        <h3>{formatTime(timeLeft)}</h3>
+        <h3 style={{ margin: 0 }}>⏱ Time Left</h3>
+
+        <div
+          style={{
+            fontSize: "26px",
+            color: "#f87171",
+            fontWeight: "bold",
+            letterSpacing: "1px",
+          }}
+        >
+          {formatTime(timeLeft)}
+        </div>
       </div>
 
       {exam.questions.map((question, qIndex) => (
