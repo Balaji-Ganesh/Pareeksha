@@ -1,13 +1,23 @@
-import { useState, useEffect } from "react";
+import Dashboard from "./pages/Dashboard";
 
-// Import custom services..
-import { supabase } from "./services/supabaseClient";
+export default function App() {
+  function handleCreate() {
+    alert("Create page will be connected next");
+  }
 
-// Import custom components..
-import MarkdownRenderer from "./components/MarkdownRenderer";
+  function handleEdit(exam) {
+    alert("Edit page will be connected next");
+  }
 
-function App() {
-  return <div>Temporary Root – Routing will come next</div>;
+  function handleAttempt(exam) {
+    alert("Attempt page will be connected next");
+  }
+
+  return (
+    <Dashboard
+      onCreate={handleCreate}
+      onEdit={handleEdit}
+      onAttempt={handleAttempt}
+    />
+  );
 }
-
-export default App;
