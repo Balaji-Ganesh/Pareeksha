@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { supabase } from "../services/supabaseClient";
-import Layout from "../components/Layout";
-import { useLocation } from "react-router-dom";
 
-export default function CreateExam({ onBack }) {
-  const { state } = useLocation();
-  const editExam = state || null;
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
+import { Card } from "../components/ui/card";
 
+export default function CreateExam({ onBack, editExam = null }) {
   const [examName, setExamName] = useState(editExam?.name || "");
   const [examDate, setExamDate] = useState(editExam?.date?.split("T")[0] || "");
   const [examDuration, setExamDuration] = useState(editExam?.duration || 90);
@@ -84,161 +84,163 @@ export default function CreateExam({ onBack }) {
   }
 
   return (
-    <Layout title={editExam ? "Edit Exam" : "Create Exam"}>
-      <input
-        type="text"
-        placeholder="Exam Name"
-        value={examName}
-        onChange={(e) => setExamName(e.target.value)}
-      />
+    <div className="max-w-3xl mx-auto p-6 space-y-4">
+      <h2 className="text-2xl font-bold">
+        {editExam ? "Edit Exam" : "Create Exam"}
+      </h2>
 
-      <input
-        type="date"
-        value={examDate}
-        onChange={(e) => setExamDate(e.target.value)}
-      />
+      <Card className="p-4 space-y-3">
+        <Input
+          placeholder="Exam Name"
+          value={examName}
+          onChange={(e) => setExamName(e.target.value)}
+        />
 
-      <input
-        type="number"
-        placeholder="Duration in minutes"
-        value={examDuration}
-        onChange={(e) => setExamDuration(Number(e.target.value))}
-      />
+        <Input
+          type="date"
+          value={examDate}
+          onChange={(e) => setExamDate(e.target.value)}
+        />
 
-      <textarea
-        placeholder="Question text"
-        value={currentQuestion.text}
-        onChange={(e) =>
-          setCurrentQuestion({
-            ...currentQuestion,
-            text: e.target.value,
-          })
-        }
-      />
+        <Input
+          type="number"
+          placeholder="Duration (minutes)"
+          value={examDuration}
+          onChange={(e) => setExamDuration(Number(e.target.value))}
+        />
+      </Card>
 
-      <select
-        value={currentQuestion.type}
-        onChange={(e) =>
-          setCurrentQuestion({
-            ...currentQuestion,
-            type: e.target.value,
-          })
-        }
-      >
-        <option value="MCQ">MCQ</option>
-        <option value="MSQ">MSQ</option>
-        <option value="NAT">NAT</option>
-      </select>
+      <Card className="p-4 space-y-3">
+        <h3 className="font-semibold">Add / Edit Question</h3>
 
-      {currentQuestion.type !== "NAT" &&
-        currentQuestion.options.map((opt, index) => (
-          <input
-            key={index}
-            type="text"
-            placeholder={`Option ${index + 1}`}
-            value={opt}
-            onChange={(e) => {
-              const newOpts = [...currentQuestion.options];
-              newOpts[index] = e.target.value;
+        <Textarea
+          placeholder="Question text (Markdown supported)"
+          value={currentQuestion.text}
+          onChange={(e) =>
+            setCurrentQuestion({
+              ...currentQuestion,
+              text: e.target.value,
+            })
+          }
+        />
 
-              setCurrentQuestion({
-                ...currentQuestion,
-                options: newOpts,
-              });
-            }}
-          />
-        ))}
+        <select
+          className="border p-2 rounded"
+          value={currentQuestion.type}
+          onChange={(e) =>
+            setCurrentQuestion({
+              ...currentQuestion,
+              type: e.target.value,
+            })
+          }
+        >
+          <option value="MCQ">MCQ</option>
+          <option value="MSQ">MSQ</option>
+          <option value="NAT">NAT</option>
+        </select>
 
-      {currentQuestion.type !== "NAT" && (
-        <div style={{ marginBottom: "10px" }}>
-          <b>Select Correct Answer:</b>
+        {currentQuestion.type !== "NAT" &&
+          currentQuestion.options.map((opt, index) => (
+            <Input
+              key={index}
+              placeholder={`Option ${index + 1}`}
+              value={opt}
+              onChange={(e) => {
+                const newOpts = [...currentQuestion.options];
+                newOpts[index] = e.target.value;
 
-          {currentQuestion.options.map((_, index) => (
-            <label key={index} style={{ marginLeft: "10px" }}>
-              <input
-                type={currentQuestion.type === "MSQ" ? "checkbox" : "radio"}
-                name="correct"
-                checked={currentQuestion.correct.includes(index)}
-                onChange={() => {
-                  if (currentQuestion.type === "MCQ") {
-                    setCurrentQuestion({
-                      ...currentQuestion,
-                      correct: [index],
-                    });
-                  } else {
-                    let newCorrect = [...currentQuestion.correct];
-
-                    if (newCorrect.includes(index)) {
-                      newCorrect = newCorrect.filter((i) => i !== index);
-                    } else {
-                      newCorrect.push(index);
-                    }
-
-                    setCurrentQuestion({
-                      ...currentQuestion,
-                      correct: newCorrect,
-                    });
-                  }
-                }}
-              />
-              {String.fromCharCode(65 + index)}
-            </label>
+                setCurrentQuestion({
+                  ...currentQuestion,
+                  options: newOpts,
+                });
+              }}
+            />
           ))}
+
+        {currentQuestion.type !== "NAT" && (
+          <div>
+            <b>Select Correct Answer:</b>
+
+            {currentQuestion.options.map((_, index) => (
+              <label key={index} className="ml-3">
+                <input
+                  type={currentQuestion.type === "MSQ" ? "checkbox" : "radio"}
+                  checked={currentQuestion.correct.includes(index)}
+                  onChange={() => {
+                    if (currentQuestion.type === "MCQ") {
+                      setCurrentQuestion({
+                        ...currentQuestion,
+                        correct: [index],
+                      });
+                    } else {
+                      let newCorrect = [...currentQuestion.correct];
+
+                      if (newCorrect.includes(index))
+                        newCorrect = newCorrect.filter((i) => i !== index);
+                      else newCorrect.push(index);
+
+                      setCurrentQuestion({
+                        ...currentQuestion,
+                        correct: newCorrect,
+                      });
+                    }
+                  }}
+                />
+                {String.fromCharCode(65 + index)}
+              </label>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <Button onClick={addQuestion}>
+            {editingIndex !== null ? "Update Question" : "Add Question"}
+          </Button>
+
+          <Button onClick={saveExam}>Save Exam</Button>
+
+          <Button variant="outline" onClick={onBack}>
+            Cancel
+          </Button>
         </div>
-      )}
-
-      <button className="btn btn-green" onClick={addQuestion}>
-        {editingIndex !== null ? "Update Question" : "Add Question"}
-      </button>
-
-      <button className="btn" style={{ marginLeft: "10px" }} onClick={saveExam}>
-        Save Exam
-      </button>
-
-      <button className="btn" style={{ marginLeft: "10px" }} onClick={onBack}>
-        Cancel
-      </button>
+      </Card>
 
       {questions.length > 0 && (
-        <div style={{ marginTop: "20px" }}>
-          <h3>Questions Added: {questions.length}</h3>
+        <Card className="p-4">
+          <h3 className="font-semibold">Questions Added: {questions.length}</h3>
 
           {questions.map((q, i) => (
-            <div
-              key={i}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-              }}
-            >
+            <div key={i} className="flex justify-between mt-2">
               <span>
                 Q{i + 1}: {q.text.substring(0, 50)}...
               </span>
 
-              <div>
-                <button
-                  className="btn"
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
                   onClick={() => {
-                    setCurrentQuestion({ ...q });
+                    setCurrentQuestion({
+                      ...q,
+                    });
                     setEditingIndex(i);
                   }}
                 >
                   Edit
-                </button>
+                </Button>
 
-                <button
-                  className="btn"
-                  onClick={() => {
-                    setQuestions(questions.filter((_, index) => index !== i));
-                  }}
+                <Button
+                  variant="destructive"
+                  onClick={() =>
+                    setQuestions(questions.filter((_, index) => index !== i))
+                  }
                 >
                   Delete
-                </button>
+                </Button>
               </div>
             </div>
           ))}
-        </div>
+        </Card>
       )}
-    </Layout>
+    </div>
   );
 }

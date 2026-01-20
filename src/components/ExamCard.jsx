@@ -1,29 +1,34 @@
+import { Card, CardContent } from "./ui/card";
+import { Button } from "./ui/button";
+
 export default function ExamCard({ exam, onAttempt, onEdit, onDelete }) {
   return (
-    <div className="card">
-      <h3>{exam.name}</h3>
+    <Card className="mb-4">
+      <CardContent className="space-y-3">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold">{exam.name}</h3>
 
-      <p style={{ fontSize: "14px", opacity: 0.8 }}>
-        📅 {new Date(exam.date).toLocaleDateString()}
-      </p>
+          <span className="text-sm text-gray-400">
+            {new Date(exam.date).toLocaleDateString()}
+          </span>
+        </div>
 
-      <p style={{ fontSize: "14px" }}>
-        ⏱ Duration: {exam.duration || 90} minutes
-      </p>
+        <div className="text-sm text-gray-300">
+          Duration: {exam.duration || 90} minutes
+        </div>
 
-      <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
-        <button className="btn" onClick={() => onAttempt(exam)}>
-          Attempt Exam
-        </button>
+        <div className="flex gap-2 mt-3">
+          <Button onClick={() => onAttempt(exam)}>Attempt Exam</Button>
 
-        <button className="btn" onClick={() => onEdit(exam)}>
-          Edit
-        </button>
+          <Button variant="outline" onClick={() => onEdit(exam)}>
+            Edit
+          </Button>
 
-        <button className="btn" onClick={() => onDelete(exam.id)}>
-          Delete
-        </button>
-      </div>
-    </div>
+          <Button variant="destructive" onClick={() => onDelete(exam.id)}>
+            Delete
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

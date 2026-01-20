@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../services/supabaseClient";
 import ExamCard from "../components/ExamCard";
 import Layout from "../components/Layout";
+import { Button } from "../components/ui/button";
 
 export default function Dashboard({ onCreate, onEdit, onAttempt }) {
   const [exams, setExams] = useState([]);
@@ -26,16 +27,20 @@ export default function Dashboard({ onCreate, onEdit, onAttempt }) {
   }
 
   return (
-    <Layout title="🎯 GATE-Duel Dashboard">
-      <button
-        className="btn btn-green"
-        style={{ marginBottom: "20px" }}
-        onClick={onCreate}
-      >
-        + Create New Exam
-      </button>
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">GATE-Duel Dashboard</h2>
 
-      <div className="grid">
+        <Button onClick={onCreate}>+ Create New Exam</Button>
+      </div>
+
+      <div className="space-y-4">
+        {exams.length === 0 && (
+          <p className="text-gray-400">
+            No exams created yet. Start by creating one!
+          </p>
+        )}
+
         {exams.map((exam) => (
           <ExamCard
             key={exam.id}
@@ -46,6 +51,6 @@ export default function Dashboard({ onCreate, onEdit, onAttempt }) {
           />
         ))}
       </div>
-    </Layout>
+    </div>
   );
 }
