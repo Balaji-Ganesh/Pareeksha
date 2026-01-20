@@ -1,12 +1,19 @@
 import { useState } from "react";
+
 import Dashboard from "./pages/Dashboard";
 import CreateExam from "./pages/CreateExam";
 import AttemptExam from "./pages/AttemptExam";
+import ReviewExam from "./pages/ReviewExam";
 
 export default function App() {
   const [mode, setMode] = useState("dashboard");
+
   const [examToEdit, setExamToEdit] = useState(null);
   const [examToAttempt, setExamToAttempt] = useState(null);
+
+  const [results, setResults] = useState(null);
+  const [reviewExam, setReviewExam] = useState(null);
+  const [reviewAnswers, setReviewAnswers] = useState(null);
 
   function handleCreate() {
     setExamToEdit(null);
@@ -23,8 +30,11 @@ export default function App() {
     setMode("attempt");
   }
 
-  function handleFinish() {
-    setMode("dashboard");
+  function handleFinish(resultData, exam, answers) {
+    setResults(resultData);
+    setReviewExam(exam);
+    setReviewAnswers(answers);
+    setMode("review");
   }
 
   if (mode === "create") {
@@ -35,6 +45,17 @@ export default function App() {
 
   if (mode === "attempt") {
     return <AttemptExam exam={examToAttempt} onFinish={handleFinish} />;
+  }
+
+  if (mode === "review") {
+    return (
+      <ReviewExam
+        exam={reviewExam}
+        results={results}
+        answers={reviewAnswers}
+        onBack={() => setMode("dashboard")}
+      />
+    );
   }
 
   return (
