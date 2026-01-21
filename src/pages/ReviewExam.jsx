@@ -1,94 +1,119 @@
-import MarkdownRenderer from "../components/MarkdownRenderer";
-import ResultSummary from "../components/ResultSummary";
-import Layout from "../components/Layout";
 import { useLocation } from "react-router-dom";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Label } from "../components/ui/label";
+import MarkdownRenderer from "../components/MarkdownRenderer";
 
 export default function ReviewExam({ onBack }) {
   const { state } = useLocation();
-
   const { exam, results, answers } = state;
+
   return (
-    <Layout title="📊 Exam Analysis">
-      <ResultSummary results={results} />
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {/* Summary */}
+      <Card className="p-6 space-y-3">
+        <h2 className="text-xl font-semibold">Exam Analysis</h2>
 
-      <h3>Question Review</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div>
+            <b>Score</b>
+            <div>{results.percentage}%</div>
+          </div>
+          <div>
+            <b>Correct</b>
+            <div>{results.correct}</div>
+          </div>
+          <div>
+            <b>Incorrect</b>
+            <div>{results.incorrect}</div>
+          </div>
+          <div>
+            <b>Unattempted</b>
+            <div>{results.unattempted}</div>
+          </div>
+        </div>
+      </Card>
 
-      {exam.questions.map((q, index) => {
-        const userAnswer = answers[index] || [];
-        const correctAnswer = q.correct || [];
+      {/* Question Review */}
+      {exam.questions.map((q, qIndex) => {
+        const userAnswer = answers[qIndex] || [];
+        const correct = q.correct || [];
 
         let status = "unattempted";
         let isCorrect = false;
 
         if (userAnswer.length > 0) {
           if (q.type === "NAT") {
-            isCorrect = userAnswer[0] === correctAnswer[0];
+            isCorrect = userAnswer[0] === correct[0];
           } else {
             isCorrect =
               JSON.stringify([...userAnswer].sort()) ===
-              JSON.stringify([...correctAnswer].sort());
+              JSON.stringify([...correct].sort());
           }
-
           status = isCorrect ? "correct" : "incorrect";
         }
 
         return (
-          <div key={index} className="card">
-            <div style={{ marginBottom: "10px" }}>
-              <b>Q{index + 1}:</b>
-              <div style={{ marginTop: "6px" }}>
+          <Card key={qIndex} className="p-6 space-y-4">
+            <div>
+              <Label className="text-base font-semibold">Q{qIndex + 1}</Label>
+              <div className="mt-2">
                 <MarkdownRenderer text={q.text} />
               </div>
             </div>
 
-            {q.type !== "NAT" &&
-              q.options.map((opt, i) => {
-                const isUser = userAnswer.includes(i);
-                const isRight = correctAnswer.includes(i);
+            {/* Options */}
+            {q.type !== "NAT" && (
+              <div className="space-y-2">
+                {q.options.map((opt, optIndex) => {
+                  const isUser = userAnswer.includes(optIndex);
+                  const isRight = correct.includes(optIndex);
 
-                let style = {};
-
-                if (isRight) {
-                  style = {
-                    color: "#4ade80",
-                    fontWeight: "bold",
-                  };
-                } else if (isUser && !isRight) {
-                  style = {
-                    color: "#f87171",
-                    fontWeight: "bold",
-                  };
-                }
-
-                return (
-                  <div key={i} className="option-container" style={style}>
-                    <span>
-                      <b>{String.fromCharCode(65 + i)}.</b>{" "}
+                  return (
+                    <div
+                      key={optIndex}
+                      className={[
+                        "rounded-md border p-3",
+                        isRight && "border-green-500 bg-green-50",
+                        isUser && !isRight && "border-red-500 bg-red-50",
+                        !isUser && !isRight && "border-border",
+                      ].join(" ")}
+                    >
+                      <b>{String.fromCharCode(65 + optIndex)}.</b>{" "}
                       <MarkdownRenderer text={opt} />
-                    </span>
-                  </div>
-                );
-              })}
-
-            {q.type === "NAT" && (
-              <div>
-                <p>Your Answer: {userAnswer[0] ?? "Not Attempted"}</p>
-                <p>Correct Answer: {correctAnswer[0]}</p>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
-            <div style={{ marginTop: "10px" }}>
+            {/* NAT */}
+            {q.type === "NAT" && (
+              <div className="space-y-1 text-sm">
+                <div>
+                  <b>Your Answer:</b> {userAnswer[0] ?? "—"}
+                </div>
+                <div>
+                  <b>Correct Answer:</b> {correct[0]}
+                </div>
+              </div>
+            )}
+
+            <div className="text-sm font-medium">
               Status: {status === "correct" && "✅ Correct"}
               {status === "incorrect" && "❌ Incorrect"}
               {status === "unattempted" && "⚪ Unattempted"}
             </div>
-          </div>
+          </Card>
         );
       })}
 
-      <button className="btn" onClick={onBack}>
-        Back to Dashboard
-      </button>
-    </Layout>
+      {/* Back */}
+      <div className="pt-4">
+        <Button variant="outline" className="w-full" onClick={onBack}>
+          Back to Dashboard
+        </Button>
+      </div>
+    </div>
   );
 }
