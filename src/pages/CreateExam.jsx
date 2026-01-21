@@ -5,6 +5,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Card } from "../components/ui/card";
+import { Label } from "../components/ui/label";
 
 export default function CreateExam({ onBack, editExam = null }) {
   const [examName, setExamName] = useState(editExam?.name || "");
@@ -89,40 +90,53 @@ export default function CreateExam({ onBack, editExam = null }) {
         {editExam ? "Edit Exam" : "Create Exam"}
       </h2>
 
-      <Card className="p-4 space-y-3">
-        <Input
-          placeholder="Exam Name"
-          value={examName}
-          onChange={(e) => setExamName(e.target.value)}
-        />
+      <Card className="p-6 space-y-5">
+        <div className="space-y-2">
+          <Label>Exam Name</Label>
+          <Input
+            placeholder="Enter exam name"
+            value={examName}
+            onChange={(e) => setExamName(e.target.value)}
+          />
+        </div>
 
-        <Input
-          type="date"
-          value={examDate}
-          onChange={(e) => setExamDate(e.target.value)}
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Date</Label>
+            <Input
+              type="date"
+              value={examDate}
+              onChange={(e) => setExamDate(e.target.value)}
+            />
+          </div>
 
-        <Input
-          type="number"
-          placeholder="Duration (minutes)"
-          value={examDuration}
-          onChange={(e) => setExamDuration(Number(e.target.value))}
-        />
+          <div className="space-y-2">
+            <Label>Duration (minutes)</Label>
+            <Input
+              type="number"
+              value={examDuration}
+              onChange={(e) => setExamDuration(Number(e.target.value))}
+            />
+          </div>
+        </div>
       </Card>
 
-      <Card className="p-4 space-y-3">
-        <h3 className="font-semibold">Add / Edit Question</h3>
+      <Card className="p-6 space-y-4">
+        <h3 className="text-lg font-semibold">Question Editor</h3>
 
-        <Textarea
-          placeholder="Question text (Markdown supported)"
-          value={currentQuestion.text}
-          onChange={(e) =>
-            setCurrentQuestion({
-              ...currentQuestion,
-              text: e.target.value,
-            })
-          }
-        />
+        <div className="space-y-2">
+          <Label>Question Text (Markdown Supported)</Label>
+          <Textarea
+            placeholder="Type your question here..."
+            value={currentQuestion.text}
+            onChange={(e) =>
+              setCurrentQuestion({
+                ...currentQuestion,
+                text: e.target.value,
+              })
+            }
+          />
+        </div>
 
         <select
           className="border p-2 rounded"
