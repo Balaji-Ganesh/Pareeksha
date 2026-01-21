@@ -7,11 +7,19 @@ import { Card } from "../components/ui/card";
 import { Label } from "../components/ui/label";
 import MarkdownRenderer from "../components/MarkdownRenderer";
 
+import { useNavigate, Navigate } from "react-router-dom";
+
+
 export default function AttemptExam({ onFinish }) {
+  const navigate = useNavigate();
   const { state: exam } = useLocation();
 
   const [timeLeft, setTimeLeft] = useState((exam.duration || 90) * 60);
   const [answers, setAnswers] = useState({});
+
+  if (!exam) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   /* ---------------- Timer ---------------- */
   useEffect(() => {
@@ -60,10 +68,12 @@ export default function AttemptExam({ onFinish }) {
       percentage: Math.round((result.correct / result.total) * 100),
     };
 
-    await supabase.from("exams").update({ score: results }).eq("id", exam.id);
-
-    onFinish(results, exam, answers);
+    // Save attempt later (next phase)
+    navigate("/review", {
+      state: { exam, results, answers },
+    });
   }
+
 
   /* ---------------- UI ---------------- */
   return (

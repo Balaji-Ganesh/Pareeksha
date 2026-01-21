@@ -1,150 +1,164 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../services/supabaseClient";
-
 import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
-import { Card } from "../components/ui/card";
-import { Label } from "../components/ui/label";
 
-export default function CreateExam({ onBack, editExam = null }) {
-  const [examName, setExamName] = useState(editExam?.name || "");
-  const [examDate, setExamDate] = useState(editExam?.date?.split("T")[0] || "");
-  const [examDuration, setExamDuration] = useState(editExam?.duration || 90);
+const emptyQuestion = {
+  text: "",
+  type: "MCQ",
+  options: ["", "", "", ""],
+  correct: [],
+};
 
-  const [questions, setQuestions] = useState(editExam?.questions || []);
+export default function CreateExam() {
+  const navigate = useNavigate();
+  const { state } = useLocation();
+  const editingExam = state?.exam || null;
 
-  const [currentQuestion, setCurrentQuestion] = useState({
-    text: "",
-    type: "MCQ",
-    options: ["", "", "", ""],
-    correct: [],
-  });
+  /* ---------- Exam Meta ---------- */
+  const [name, setName] = useState("");
+  const [date, setDate] = useState("");
+  const [duration, setDuration] = useState(90);
 
-  const [editingIndex, setEditingIndex] = useState(null);
+  /* ---------- Questions ---------- */
+  const [questions, setQuestions] = useState([]);
+  const [currentQuestion, setCurrentQuestion] = useState(emptyQuestion);
+  const [editingQuestionIndex, setEditingQuestionIndex] = useState(null);
 
-  function addQuestion() {
-    if (!currentQuestion.text.trim()) {
-      alert("Question text cannot be empty");
-      return;
+  /* ---------- Load Edit Exam ---------- */
+  useEffect(() => {
+    if (editingExam) {
+      setName(editingExam.name || "");
+      setDate(editingExam.date?.slice(0, 10) || "");
+      setDuration(editingExam.duration || 90);
+      setQuestions(editingExam.questions || []);
     }
+  }, [editingExam]);
 
-    if (editingIndex !== null) {
-      const updated = [...questions];
-      updated[editingIndex] = { ...currentQuestion };
-      setQuestions(updated);
-      setEditingIndex(null);
-    } else {
-      setQuestions([...questions, { ...currentQuestion }]);
-    }
-
-    setCurrentQuestion({
-      text: "",
-      type: "MCQ",
-      options: ["", "", "", ""],
-      correct: [],
-    });
+  /* ---------- Question Handlers ---------- */
+  function resetEditor() {
+    setCurrentQuestion(emptyQuestion);
+    setEditingQuestionIndex(null);
   }
 
-  async function saveExam() {
-    if (questions.length === 0) {
-      alert("Add at least one question!");
+  function saveQuestion() {
+    if (!currentQuestion.text.trim()) {
+      alert("Question text is required");
       return;
     }
 
-    const examData = {
-      name: examName,
-      date: examDate,
-      duration: examDuration,
-      creator: "Person A",
+    if (
+      currentQuestion.type !== "NAT" &&
+      currentQuestion.correct.length === 0
+    ) {
+      alert("Please select correct answer(s)");
+      return;
+    }
+
+    if (editingQuestionIndex !== null) {
+      const updated = [...questions];
+      updated[editingQuestionIndex] = currentQuestion;
+      setQuestions(updated);
+    } else {
+      setQuestions([...questions, currentQuestion]);
+    }
+
+    resetEditor();
+  }
+
+  function editQuestion(index) {
+    setCurrentQuestion(questions[index]);
+    setEditingQuestionIndex(index);
+  }
+
+  function deleteQuestion(index) {
+    if (!window.confirm("Delete this question?")) return;
+    setQuestions(questions.filter((_, i) => i !== index));
+    resetEditor();
+  }
+
+  /* ---------- Save Exam ---------- */
+  async function saveExam() {
+    if (!name || questions.length === 0) {
+      alert("Exam name and at least one question are required.");
+      return;
+    }
+
+    const payload = {
+      name,
+      date,
+      duration,
       questions,
     };
 
-    let error;
-
-    if (editExam) {
-      const res = await supabase
-        .from("exams")
-        .update(examData)
-        .eq("id", editExam.id);
-
-      error = res.error;
+    if (editingExam) {
+      await supabase.from("exams").update(payload).eq("id", editingExam.id);
     } else {
-      const res = await supabase.from("exams").insert([examData]);
-
-      error = res.error;
+      await supabase.from("exams").insert([payload]);
     }
 
-    if (error) {
-      alert("Error: " + error.message);
-      return;
-    }
-
-    alert(editExam ? "Exam updated!" : "Exam saved!");
-    onBack();
+    navigate("/dashboard");
   }
 
+  /* ---------- UI ---------- */
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-4">
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
       <h2 className="text-2xl font-bold">
-        {editExam ? "Edit Exam" : "Create Exam"}
+        {editingExam ? "Edit Exam" : "Create Exam"}
       </h2>
 
-      <Card className="p-6 space-y-5">
-        <div className="space-y-2">
-          <Label>Exam Name</Label>
-          <Input
-            placeholder="Enter exam name"
-            value={examName}
-            onChange={(e) => setExamName(e.target.value)}
-          />
-        </div>
+      {/* Exam Meta */}
+      <Card className="p-4 space-y-3">
+        <Input
+          placeholder="Exam Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Date</Label>
-            <Input
-              type="date"
-              value={examDate}
-              onChange={(e) => setExamDate(e.target.value)}
-            />
-          </div>
+        <Input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+        />
 
-          <div className="space-y-2">
-            <Label>Duration (minutes)</Label>
-            <Input
-              type="number"
-              value={examDuration}
-              onChange={(e) => setExamDuration(Number(e.target.value))}
-            />
-          </div>
-        </div>
+        <Input
+          type="number"
+          placeholder="Duration (minutes)"
+          value={duration}
+          onChange={(e) => setDuration(+e.target.value)}
+        />
       </Card>
 
-      <Card className="p-6 space-y-4">
-        <h3 className="text-lg font-semibold">Question Editor</h3>
+      {/* Question Editor */}
+      <Card className="p-4 space-y-4">
+        <h3 className="font-semibold">
+          {editingQuestionIndex !== null
+            ? `Edit Question ${editingQuestionIndex + 1}`
+            : "Add Question"}
+        </h3>
 
-        <div className="space-y-2">
-          <Label>Question Text (Markdown Supported)</Label>
-          <Textarea
-            placeholder="Type your question here..."
-            value={currentQuestion.text}
-            onChange={(e) =>
-              setCurrentQuestion({
-                ...currentQuestion,
-                text: e.target.value,
-              })
-            }
-          />
-        </div>
+        <Textarea
+          placeholder="Question text"
+          value={currentQuestion.text}
+          onChange={(e) =>
+            setCurrentQuestion({
+              ...currentQuestion,
+              text: e.target.value,
+            })
+          }
+        />
 
         <select
-          className="border p-2 rounded"
+          className="border rounded p-2 w-fit"
           value={currentQuestion.type}
           onChange={(e) =>
             setCurrentQuestion({
               ...currentQuestion,
               type: e.target.value,
+              correct: [],
             })
           }
         >
@@ -154,107 +168,99 @@ export default function CreateExam({ onBack, editExam = null }) {
         </select>
 
         {currentQuestion.type !== "NAT" &&
-          currentQuestion.options.map((opt, index) => (
+          currentQuestion.options.map((opt, i) => (
             <Input
-              key={index}
-              placeholder={`Option ${index + 1}`}
+              key={i}
+              placeholder={`Option ${i + 1}`}
               value={opt}
               onChange={(e) => {
-                const newOpts = [...currentQuestion.options];
-                newOpts[index] = e.target.value;
-
+                const options = [...currentQuestion.options];
+                options[i] = e.target.value;
                 setCurrentQuestion({
                   ...currentQuestion,
-                  options: newOpts,
+                  options,
                 });
               }}
             />
           ))}
 
         {currentQuestion.type !== "NAT" && (
-          <div>
-            <b>Select Correct Answer:</b>
-
-            {currentQuestion.options.map((_, index) => (
-              <label key={index} className="ml-3">
+          <div className="flex gap-4 flex-wrap">
+            {currentQuestion.options.map((_, i) => (
+              <label key={i} className="flex items-center gap-1">
                 <input
                   type={currentQuestion.type === "MSQ" ? "checkbox" : "radio"}
-                  checked={currentQuestion.correct.includes(index)}
+                  checked={currentQuestion.correct.includes(i)}
                   onChange={() => {
                     if (currentQuestion.type === "MCQ") {
                       setCurrentQuestion({
                         ...currentQuestion,
-                        correct: [index],
+                        correct: [i],
                       });
                     } else {
-                      let newCorrect = [...currentQuestion.correct];
-
-                      if (newCorrect.includes(index))
-                        newCorrect = newCorrect.filter((i) => i !== index);
-                      else newCorrect.push(index);
-
                       setCurrentQuestion({
                         ...currentQuestion,
-                        correct: newCorrect,
+                        correct: currentQuestion.correct.includes(i)
+                          ? currentQuestion.correct.filter((c) => c !== i)
+                          : [...currentQuestion.correct, i],
                       });
                     }
                   }}
                 />
-                {String.fromCharCode(65 + index)}
+                {String.fromCharCode(65 + i)}
               </label>
             ))}
           </div>
         )}
 
         <div className="flex gap-2">
-          <Button onClick={addQuestion}>
-            {editingIndex !== null ? "Update Question" : "Add Question"}
+          <Button variant="primary" onClick={saveQuestion}>
+            {editingQuestionIndex !== null ? "Update Question" : "Add Question"}
           </Button>
 
-          <Button onClick={saveExam}>Save Exam</Button>
-
-          <Button variant="outline" onClick={onBack}>
-            Cancel
-          </Button>
+          {editingQuestionIndex !== null && (
+            <Button variant="outline" onClick={resetEditor}>
+              Cancel Edit
+            </Button>
+          )}
         </div>
       </Card>
 
-      {questions.length > 0 && (
-        <Card className="p-4">
-          <h3 className="font-semibold">Questions Added: {questions.length}</h3>
+      {/* Question List */}
+      <Card className="p-4 space-y-2">
+        <h3 className="font-semibold">Questions ({questions.length})</h3>
 
-          {questions.map((q, i) => (
-            <div key={i} className="flex justify-between mt-2">
-              <span>
-                Q{i + 1}: {q.text.substring(0, 50)}...
-              </span>
+        {questions.map((q, i) => (
+          <div
+            key={i}
+            className="flex justify-between items-center border rounded p-2"
+          >
+            <span>
+              Q{i + 1}: {q.text.slice(0, 60)}…
+            </span>
 
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setCurrentQuestion({
-                      ...q,
-                    });
-                    setEditingIndex(i);
-                  }}
-                >
-                  Edit
-                </Button>
-
-                <Button
-                  variant="destructive"
-                  onClick={() =>
-                    setQuestions(questions.filter((_, index) => index !== i))
-                  }
-                >
-                  Delete
-                </Button>
-              </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => editQuestion(i)}>
+                Edit
+              </Button>
+              <Button variant="destructive" onClick={() => deleteQuestion(i)}>
+                Delete
+              </Button>
             </div>
-          ))}
-        </Card>
-      )}
+          </div>
+        ))}
+      </Card>
+
+      {/* Actions */}
+      <div className="flex gap-3">
+        <Button variant="primary" onClick={saveExam}>
+          {editingExam ? "Update Exam" : "Save Exam"}
+        </Button>
+
+        <Button variant="outline" onClick={() => navigate("/dashboard")}>
+          Cancel
+        </Button>
+      </div>
     </div>
   );
 }

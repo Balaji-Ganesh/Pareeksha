@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate, Navigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Label } from "../components/ui/label";
@@ -7,6 +7,12 @@ import MarkdownRenderer from "../components/MarkdownRenderer";
 export default function ReviewExam({ onBack }) {
   const { state } = useLocation();
   const { exam, results, answers } = state;
+
+  const navigate = useNavigate();
+
+  if (!state) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -109,11 +115,13 @@ export default function ReviewExam({ onBack }) {
       })}
 
       {/* Back */}
-      <div className="pt-4">
-        <Button variant="outline" className="w-full" onClick={onBack}>
-          Back to Dashboard
-        </Button>
-      </div>
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={() => navigate("/dashboard")}
+      >
+        Back to Dashboard
+      </Button>
     </div>
   );
 }
