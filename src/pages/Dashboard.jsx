@@ -33,7 +33,7 @@ export default function Dashboard({ onCreate, onEdit, onAttempt }) {
 
         <Button onClick={onCreate}>+ Create New Exam</Button>
       </div>
-
+      
       <div className="space-y-4">
         {exams.length === 0 && (
           <p className="text-gray-400">

@@ -1,55 +1,55 @@
-import { Routes, Route, useNavigate } from "react-router-dom";
-
+import { Routes, Route, Navigate } from "react-router-dom";
+import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import CreateExam from "./pages/CreateExam";
 import AttemptExam from "./pages/AttemptExam";
 import ReviewExam from "./pages/ReviewExam";
+import CreateExam from "./pages/CreateExam";
+import ProtectedRoute from "./components/ProtectedRoute";
 
-export default function App() {
-  const navigate = useNavigate();
-
+function App() {
   return (
     <Routes>
+      <Route path="/login" element={<Login />} />
+
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
       <Route
-        path="/"
+        path="/dashboard"
         element={
-          <Dashboard
-            onCreate={() => navigate("/create")}
-            onEdit={(exam) => navigate(`/edit/${exam.id}`, { state: exam })}
-            onAttempt={(exam) =>
-              navigate(`/attempt/${exam.id}`, { state: exam })
-            }
-          />
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
         }
       />
 
       <Route
         path="/create"
-        element={<CreateExam onBack={() => navigate("/")} />}
-      />
-
-      <Route
-        path="/edit/:id"
-        element={<CreateExam onBack={() => navigate("/")} />}
-      />
-
-      <Route
-        path="/attempt/:id"
         element={
-          <AttemptExam
-            onFinish={(results, exam, answers) =>
-              navigate(`/review/${exam.id}`, {
-                state: { results, exam, answers },
-              })
-            }
-          />
+          <ProtectedRoute>
+            <CreateExam />
+          </ProtectedRoute>
         }
       />
 
       <Route
-        path="/review/:id"
-        element={<ReviewExam onBack={() => navigate("/")} />}
+        path="/attempt"
+        element={
+          <ProtectedRoute>
+            <AttemptExam />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/review"
+        element={
+          <ProtectedRoute>
+            <ReviewExam />
+          </ProtectedRoute>
+        }
       />
     </Routes>
   );
 }
+
+export default App;
