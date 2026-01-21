@@ -1,34 +1,35 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../services/supabaseClient";
-import MarkdownRenderer from "../components/MarkdownRenderer";
-import Layout from "../components/Layout";
 import { useLocation } from "react-router-dom";
+import { supabase } from "../services/supabaseClient";
+
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Label } from "../components/ui/label";
+import MarkdownRenderer from "../components/MarkdownRenderer";
 
 export default function AttemptExam({ onFinish }) {
-  const { state } = useLocation();
-  const exam = state;
-  const [timeLeft, setTimeLeft] = useState((exam.duration || 90) * 60);
+  const { state: exam } = useLocation();
 
+  const [timeLeft, setTimeLeft] = useState((exam.duration || 90) * 60);
   const [answers, setAnswers] = useState({});
 
-  // Timer logic
+  /* ---------------- Timer ---------------- */
   useEffect(() => {
-    if (timeLeft > 0) {
-      const timer = setInterval(() => setTimeLeft((t) => t - 1), 1000);
-      return () => clearInterval(timer);
-    } else {
+    if (timeLeft <= 0) {
       submitExam();
+      return;
     }
+    const timer = setInterval(() => setTimeLeft((t) => t - 1), 1000);
+    return () => clearInterval(timer);
   }, [timeLeft]);
 
   function formatTime(seconds) {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   }
 
+  /* ---------------- Submit ---------------- */
   async function submitExam() {
     const result = exam.questions.reduce(
       (acc, q, index) => {
@@ -49,19 +50,13 @@ export default function AttemptExam({ onFinish }) {
           total: acc.total + 1,
         };
       },
-      {
-        correct: 0,
-        attempted: 0,
-        total: exam.questions.length,
-      }
+      { correct: 0, attempted: 0, total: exam.questions.length },
     );
 
     const results = {
-      attempted: result.attempted,
-      correct: result.correct,
+      ...result,
       incorrect: result.attempted - result.correct,
       unattempted: result.total - result.attempted,
-      total: result.total,
       percentage: Math.round((result.correct / result.total) * 100),
     };
 
@@ -70,79 +65,90 @@ export default function AttemptExam({ onFinish }) {
     onFinish(results, exam, answers);
   }
 
+  /* ---------------- UI ---------------- */
   return (
-    <Layout title={exam.name}>
-      <div
-        className="card"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <h3 style={{ margin: 0 }}>⏱ Time Left</h3>
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {/* Sticky Header Wrapper */}
+      <div className="sticky top-0 z-20 bg-background border-b">
+        <div className="p-6">
+          <Card className="p-4 flex justify-between items-center">
+            <h2 className="text-xl font-semibold">{exam.name}</h2>
 
-        <div
-          style={{
-            fontSize: "26px",
-            color: "#f87171",
-            fontWeight: "bold",
-            letterSpacing: "1px",
-          }}
-        >
-          {formatTime(timeLeft)}
+            <div className="text-2xl font-mono text-red-500 font-bold">
+              ⏱ {formatTime(timeLeft)}
+            </div>
+          </Card>
         </div>
       </div>
 
-      {exam.questions.map((question, qIndex) => (
-        <div key={qIndex} className="card">
-          <div style={{ marginBottom: "10px" }}>
-            <b>Q{qIndex + 1}:</b>
-            <div style={{ marginTop: "6px" }}>
-              <MarkdownRenderer text={question.text} />
+      {/* Questions */}
+      {exam.questions.map((q, qIndex) => (
+        <Card key={qIndex} className="p-6 space-y-4">
+          <div>
+            <Label className="text-base font-semibold">Q{qIndex + 1}</Label>
+            <div className="mt-2">
+              <MarkdownRenderer text={q.text} />
             </div>
           </div>
 
-          {question.type !== "NAT" &&
-            question.options.map((option, optIndex) => (
-              <label key={optIndex} className="option-container">
-                <input
-                  type={question.type === "MSQ" ? "checkbox" : "radio"}
-                  name={`q${qIndex}`}
-                  checked={answers[qIndex]?.includes(optIndex) || false}
-                  onChange={(e) => {
-                    const newAnswers = {
-                      ...answers,
-                    };
+          {/* MCQ / MSQ */}
+          {q.type !== "NAT" && (
+            <div className="space-y-2">
+              {q.options.map((opt, optIndex) => {
+                const checked = answers[qIndex]?.includes(optIndex) || false;
 
-                    if (!newAnswers[qIndex]) newAnswers[qIndex] = [];
+                return (
+                  <label
+                    key={optIndex}
+                    className={[
+                      "flex items-start gap-3 rounded-md border p-3 cursor-pointer",
+                      "transition-colors",
+                      checked
+                        ? "border-blue-500 ring-1 ring-blue-500/40"
+                        : "border-border hover:border-muted-foreground",
+                    ].join(" ")}
+                  >
+                    <input
+                      type={q.type === "MSQ" ? "checkbox" : "radio"}
+                      name={`q-${qIndex}`}
+                      checked={checked}
+                      onChange={(e) => {
+                        const newAnswers = { ...answers };
+                        if (!newAnswers[qIndex]) newAnswers[qIndex] = [];
 
-                    if (question.type === "MCQ") {
-                      newAnswers[qIndex] = e.target.checked ? [optIndex] : [];
-                    } else {
-                      if (e.target.checked) newAnswers[qIndex].push(optIndex);
-                      else
-                        newAnswers[qIndex] = newAnswers[qIndex].filter(
-                          (i) => i !== optIndex
-                        );
-                    }
+                        if (q.type === "MCQ") {
+                          newAnswers[qIndex] = e.target.checked
+                            ? [optIndex]
+                            : [];
+                        } else {
+                          if (e.target.checked)
+                            newAnswers[qIndex].push(optIndex);
+                          else
+                            newAnswers[qIndex] = newAnswers[qIndex].filter(
+                              (i) => i !== optIndex,
+                            );
+                        }
+                        setAnswers(newAnswers);
+                      }}
+                    />
 
-                    setAnswers(newAnswers);
-                  }}
-                />
+                    <div>
+                      <b>{String.fromCharCode(65 + optIndex)}.</b>{" "}
+                      <MarkdownRenderer text={opt} />
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          )}
 
-                <span className="option-text">
-                  <b>{String.fromCharCode(65 + optIndex)}.</b>{" "}
-                  <MarkdownRenderer text={option} />
-                </span>
-              </label>
-            ))}
-
-          {question.type === "NAT" && (
+          {/* NAT */}
+          {q.type === "NAT" && (
             <input
               type="number"
+              className="border rounded-md p-2 w-40"
               placeholder="Enter answer"
-              value={answers[qIndex]?.[0] || ""}
+              value={answers[qIndex]?.[0] ?? ""}
               onChange={(e) =>
                 setAnswers({
                   ...answers,
@@ -151,12 +157,15 @@ export default function AttemptExam({ onFinish }) {
               }
             />
           )}
-        </div>
+        </Card>
       ))}
 
-      <button className="btn btn-green" onClick={submitExam}>
-        Submit Exam
-      </button>
-    </Layout>
+      {/* Submit */}
+      <div className="pt-6">
+        <Button className="w-full text-lg" onClick={submitExam}>
+          Submit Exam
+        </Button>
+      </div>
+    </div>
   );
 }
