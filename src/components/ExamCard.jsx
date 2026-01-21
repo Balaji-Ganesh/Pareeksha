@@ -18,7 +18,9 @@ export default function ExamCard({ exam, onAttempt, onEdit, onDelete }) {
         </div>
 
         <div className="flex gap-2 mt-3">
-          <Button onClick={() => onAttempt(exam)}>Attempt Exam</Button>
+          <Button variant="primary" onClick={() => onAttempt(exam)}>
+            Attempt Exam
+          </Button>
 
           <Button variant="outline" onClick={() => onEdit(exam)}>
             Edit

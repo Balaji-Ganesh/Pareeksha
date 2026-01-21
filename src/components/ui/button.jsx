@@ -16,7 +16,10 @@ const Button = React.forwardRef(
           "disabled:opacity-50 disabled:pointer-events-none",
 
           variant === "default" &&
-            "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98]",
+            "border border-border bg-background text-foreground hover:bg-muted",
+
+          variant === "primary" &&
+            "bg-primary text-primary-foreground hover:bg-primary/90",
 
           variant === "outline" &&
             "border border-border bg-background hover:bg-muted",

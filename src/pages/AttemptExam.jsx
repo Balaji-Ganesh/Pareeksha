@@ -162,7 +162,11 @@ export default function AttemptExam({ onFinish }) {
 
       {/* Submit */}
       <div className="pt-6">
-        <Button className="w-full text-lg" onClick={submitExam}>
+        <Button
+          variant="primary"
+          className="w-full text-lg"
+          onClick={submitExam}
+        >
           Submit Exam
         </Button>
       </div>
