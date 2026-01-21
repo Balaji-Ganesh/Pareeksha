@@ -1,164 +1,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@layer base {
+  :root {
+    /* Core surfaces */
+    --background: 0 0% 100%;
+    --foreground: 222.2 47.4% 11.2%;
 
-/* Global Theme */
-body {
-  margin: 0;
-  font-family:
-    system-ui,
-    -apple-system,
-    Segoe UI,
-    Roboto,
-    Arial;
-  background: linear-gradient(135deg, #0f172a, #1e293b);
-  color: #e2e8f0;
-}
+    --card: 0 0% 98%;
+    --card-foreground: 222.2 47.4% 11.2%;
 
-.container {
-  max-width: 1100px;
-  margin: auto;
-  padding: 20px;
-}
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-/* Cards */
-.card {
-  background: rgba(30, 41, 59, 0.85);
-  backdrop-filter: blur(10px);
-  border-radius: 14px;
-  padding: 20px;
-  margin-bottom: 15px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  transition: all 0.2s ease;
-}
+    --border: 214.3 31.8% 91.4%;
 
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-}
+    /* Primary action */
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
 
-/* Buttons */
-.btn {
-  padding: 10px 16px;
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s;
-}
+    --radius: 0.5rem;
+  }
 
-.btn:hover {
-  background: #1d4ed8;
-  transform: scale(1.02);
-}
-
-.btn-green {
-  background: #16a34a;
-}
-
-.btn-green:hover {
-  background: #15803d;
-}
-
-/* Inputs */
-input,
-textarea,
-select {
-  width: 100%;
-  background: #0f172a;
-  color: white;
-  border: 1px solid #334155;
-  border-radius: 10px;
-  padding: 10px;
-  margin-bottom: 10px;
-}
-
-textarea {
-  resize: vertical;
-}
-
-/* Typography */
-h1,
-h2,
-h3 {
-  margin: 10px 0;
-  color: #f1f5f9;
-}
-
-.grid {
-  display: grid;
-  gap: 12px;
-}
-
-/* Attempt Screen */
-.question-box {
-  background: rgba(15, 23, 42, 0.7);
-  padding: 15px;
-  border-radius: 12px;
-  margin-top: 10px;
-}
-
-label {
-  cursor: pointer;
-}
-
-/* Fix for radio and checkbox alignment */
-input[type="radio"],
-input[type="checkbox"] {
-  width: auto;
-  margin: 0;
-  padding: 0;
-  accent-color: #2563eb;
-  transform: scale(1.2);
-  margin-right: 8px;
-}
-
-/* Better alignment for option rows */
-.option-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 6px;
-}
-
-/* Markdown option alignment fix */
-.option-container {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 8px 6px;
-  cursor: pointer;
-}
-
-/* Keep markdown inline inside options */
-.option-text {
-  display: inline-block;
-}
-
-/* Inline code styling */
-.inline-code {
-  background: #020617;
-  padding: 2px 6px;
-  border-radius: 6px;
-  font-family: monospace;
-}
-
-/* Prevent code blocks from centering */
-pre {
-  text-align: left !important;
-}
-
-/* Better spacing for markdown inside questions */
-.card div > span {
-  line-height: 1.5;
-}
-
-.inline-code {
-  background: #020617;
-  padding: 2px 6px;
-  border-radius: 6px;
-  font-family: monospace;
-  white-space: nowrap;
+  body {
+    @apply bg-background text-foreground;
+  }
 }
