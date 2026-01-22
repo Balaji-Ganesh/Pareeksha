@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { supabase } from "../services/supabaseClient";
 
 import { Button } from "../components/ui/button";
@@ -7,29 +7,57 @@ import { Card } from "../components/ui/card";
 import { Label } from "../components/ui/label";
 import MarkdownRenderer from "../components/MarkdownRenderer";
 
-import { useNavigate, Navigate } from "react-router-dom";
-
-
-export default function AttemptExam({ onFinish }) {
+export default function AttemptExam() {
+  const { examId } = useParams();
   const navigate = useNavigate();
-  const { state: exam } = useLocation();
 
-  const [timeLeft, setTimeLeft] = useState((exam.duration || 90) * 60);
+  const [exam, setExam] = useState(null);
+  // const [loading, setLoading] = useState(true);
+
+  const [timeLeft, setTimeLeft] = useState(null);
   const [answers, setAnswers] = useState({});
 
-  if (!exam) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  useEffect(() => {
+    async function loadExam() {
+      const { data, error } = await supabase
+        .from("exams")
+        .select("*")
+        .eq("id", examId);
+
+      if (error || !data || data.length === 0) {
+        return;
+      }
+
+      setExam(data[0]);
+      setTimeLeft((data[0].duration || 90) * 60);
+    }
+
+    loadExam();
+  }, [examId]);
 
   /* ---------------- Timer ---------------- */
   useEffect(() => {
+    if (!exam) return;
+
     if (timeLeft <= 0) {
       submitExam();
       return;
     }
-    const timer = setInterval(() => setTimeLeft((t) => t - 1), 1000);
+
+    const timer = setInterval(() => {
+      setTimeLeft((t) => t - 1);
+    }, 1000);
+
     return () => clearInterval(timer);
-  }, [timeLeft]);
+  }, [exam, timeLeft]);
+
+  // if (loading) return null;
+  if (!exam)
+    return (
+      <div className="p-6 text-muted-foreground">
+        Please wait, loading exam..!!
+      </div>
+    );
 
   function formatTime(seconds) {
     const m = Math.floor(seconds / 60);
@@ -69,13 +97,14 @@ export default function AttemptExam({ onFinish }) {
     };
 
     // Save attempt later (next phase)
-    navigate("/review", {
-      state: { exam, results, answers },
+    navigate(`/review/${examId}`, {
+      state: { results, answers },
     });
   }
 
-
   /* ---------------- UI ---------------- */
+  // return <div className="p-6 text-white">ATTEMPT EXAM PAGE LOADED</div>;
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Sticky Header Wrapper */}

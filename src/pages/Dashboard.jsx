@@ -49,7 +49,7 @@ export default function Dashboard() {
           <ExamCard
             key={exam.id}
             exam={exam}
-            onAttempt={() => navigate("/attempt", { state: exam })}
+            onAttempt={() => navigate(`/attempt/${exam.id}`)}
             onEdit={() => navigate("/create", { state: { exam } })}
             onDelete={deleteExam}
           />

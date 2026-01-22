@@ -32,7 +32,7 @@ function App() {
       />
 
       <Route
-        path="/attempt"
+        path="/attempt/:examId"
         element={
           <ProtectedRoute>
             <AttemptExam />
@@ -41,7 +41,7 @@ function App() {
       />
 
       <Route
-        path="/review"
+        path="/review/:examId"
         element={
           <ProtectedRoute>
             <ReviewExam />
