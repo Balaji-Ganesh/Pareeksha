@@ -106,27 +106,49 @@ export default function CreateExam() {
   }
 
   /* ---------------- Save Exam ---------------- */
-  async function saveExam() {
-    if (!name || questions.length === 0) {
-      alert("Exam name and at least one question are required.");
+async function saveExam() {
+  if (!name || questions.length === 0) {
+    alert("Exam name and at least one question are required.");
+    return;
+  }
+
+  const payload = {
+    name,
+    date,
+    duration,
+    questions,
+    creator: "Person A", // TODO: To be replaced with auth user next..
+  };
+
+  if (isEdit) {
+    const { error } = await supabase
+      .from("exams")
+      .update(payload)
+      .eq("id", examId);
+
+    if (error) {
+      console.error("Update failed:", error);
+      alert(error.message);
       return;
     }
+  } else {
+    const { data, error } = await supabase
+      .from("exams")
+      .insert([payload])
+      .select();
 
-    const payload = {
-      name,
-      date,
-      duration,
-      questions,
-    };
+    console.log("Insert response:", data, error);
 
-    if (isEdit) {
-      await supabase.from("exams").update(payload).eq("id", examId);
-    } else {
-      await supabase.from("exams").insert([payload]);
+    if (error) {
+      console.error("Insert failed:", error);
+      alert(error.message);
+      return;
     }
-
-    navigate("/dashboard");
   }
+
+  navigate("/dashboard");
+}
+
 
   /* ---------------- Guard (Edit Mode) ---------------- */
   if (isEdit && !exam) {
@@ -241,6 +263,20 @@ export default function CreateExam() {
               </label>
             ))}
           </div>
+        )}
+
+        {currentQuestion.type === "NAT" && (
+          <Input
+            type="number"
+            placeholder="Correct numeric answer"
+            value={currentQuestion.correct[0] ?? ""}
+            onChange={(e) =>
+              setCurrentQuestion({
+                ...currentQuestion,
+                correct: [Number(e.target.value)],
+              })
+            }
+          />
         )}
 
         <div className="flex gap-2">
