@@ -1,17 +1,46 @@
-import { useLocation, useNavigate, Navigate } from "react-router-dom";
+import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Label } from "../components/ui/label";
 import MarkdownRenderer from "../components/MarkdownRenderer";
 
-export default function ReviewExam({ onBack }) {
-  const { state } = useLocation();
-  const { exam, results, answers } = state;
+import { useEffect, useState } from "react";
+import { supabase } from "../services/supabaseClient";
 
+export default function ReviewExam({ onBack }) {
+  const { examId } = useParams();
   const navigate = useNavigate();
 
-  if (!state) {
-    return <Navigate to="/dashboard" replace />;
+  const [exam, setExam] = useState(null);
+  const [results, setResults] = useState(null);
+  const [answers, setAnswers] = useState(null);
+
+  useEffect(() => {
+    async function loadExam() {
+      const { data, error } = await supabase
+        .from("exams")
+        .select("*")
+        .eq("id", examId);
+
+      if (error || !data || data.length === 0) return;
+
+      setExam(data[0]);
+    }
+
+    loadExam();
+  }, [examId]);
+
+  useEffect(() => {
+    const state = history.state?.usr;
+
+    if (!state) return;
+
+    setResults(state.results);
+    setAnswers(state.answers);
+  }, []);
+
+  if (!exam || !results || !answers) {
+    return <div className="p-6 text-muted-foreground">Loading review…</div>;
   }
 
   return (
