@@ -112,12 +112,16 @@ async function saveExam() {
     return;
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const payload = {
     name,
     date,
     duration,
     questions,
-    creator: "Person A", // TODO: To be replaced with auth user next..
+    creator: user.id,
   };
 
   if (isEdit) {
