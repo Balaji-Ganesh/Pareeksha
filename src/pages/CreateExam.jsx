@@ -17,7 +17,8 @@ export default function CreateExam() {
   const [exam, setExam] = useState(null);
 
   const [name, setName] = useState("");
-  const [date, setDate] = useState("");
+  const today = new Date().toISOString().slice(0, 10);
+  const [date, setDate] = useState(today);
   const [duration, setDuration] = useState(90);
   const [questions, setQuestions] = useState([]);
 
@@ -156,7 +157,11 @@ async function saveExam() {
 
   /* ---------------- Guard (Edit Mode) ---------------- */
   if (isEdit && !exam) {
-    return <div className="p-6 text-muted-foreground">Loading exam…</div>;
+    return (
+      <div className="p-6 text-muted-foreground">
+        Loading interface, please wait.....
+      </div>
+    );
   }
 
   /* ---------------- UI ---------------- */
