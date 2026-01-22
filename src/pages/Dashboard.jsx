@@ -50,7 +50,7 @@ export default function Dashboard() {
             key={exam.id}
             exam={exam}
             onAttempt={() => navigate(`/attempt/${exam.id}`)}
-            onEdit={() => navigate("/create", { state: { exam } })}
+            onEdit={() => navigate(`/edit/${exam.id}`)}
             onDelete={deleteExam}
           />
         ))}

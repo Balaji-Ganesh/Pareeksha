@@ -32,6 +32,15 @@ function App() {
       />
 
       <Route
+        path="/edit/:examId"
+        element={
+          <ProtectedRoute>
+            <CreateExam />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/attempt/:examId"
         element={
           <ProtectedRoute>
