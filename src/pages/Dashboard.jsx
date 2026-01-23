@@ -30,7 +30,7 @@ export default function Dashboard() {
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">GATE-Duel Dashboard</h2>
+        <h2 className="text-2xl font-bold">Dashboard</h2>
 
         {/* CREATE */}
         <Button variant="primary" onClick={() => navigate("/create")}>
